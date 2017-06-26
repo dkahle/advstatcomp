@@ -25,8 +25,7 @@ Add introduction here.
 y = \beta_0 + \beta_1 x + \varepsilon
 \end{equation}
 
-
-
+$y = x\beta$
 
 ## Setup {-}
 
