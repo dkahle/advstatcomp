@@ -1,0 +1,19 @@
+bookdown::gitbook:
+  css: css/style.css
+  split_by: section
+  config:
+    toc:
+      collapse: subsection
+      before: |
+        <li><a href="./">Advanced Statistical Computing</a></li>
+      after: |
+        <li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
+bookdown::html_chapters:
+  css: [css/style.css, css/toc.css]
+bookdown::pdf_book:
+  includes:
+    in_header: preamble.tex
+  latex_engine: xelatex
+  citation_package: natbib
+bookdown::epub_book:
+  stylesheet: css/style.css

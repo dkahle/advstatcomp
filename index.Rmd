@@ -1,0 +1,52 @@
+--- 
+title: "Advanced Statistical Computing"
+author: "Roger D. Peng, Brian S. Caffo"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+output:
+  bookdown::html_chapters:
+    includes:
+      in_header: style.css
+documentclass: book
+cover-image: "cover-image.png"
+bibliography: [combined.bib]
+biblio-style: asa
+link-citations: yes
+github-repo: rdpeng/advstatcomp
+url: 'https\://github.com/rdpeng/advstatcomp'
+description: "The book covers material taught in the Johns Hopkins Biostatistics Advanced Statistical Computing course."
+---
+
+# Introduction {-}
+
+Add introduction here.
+
+\begin{equation}
+y = \beta_0 + \beta_1 x + \varepsilon
+\end{equation}
+
+
+
+
+## Setup {-}
+
+```{r,include=FALSE}
+pkgs <- sort(readLines("_R_package_list.txt"))
+pkgstr <- paste("`", pkgs, "`", sep = "", collapse = ", ")
+installstr <- paste0("install.packages(c(", 
+                     paste("\"", pkgs, "\"", sep = "", 
+                           collapse = ", "),
+                     "))")
+```
+This book makes use of the following R packages, which should be installed to take full advantage of the examples. 
+
+```{r,echo=FALSE,comment=NA}
+writeLines(pkgs)
+```
+
+You can install all of these packages with the following code:
+
+```{r,echo=FALSE, comment=NA}
+cat(installstr, "\n")
+```
+

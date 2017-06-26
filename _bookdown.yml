@@ -1,0 +1,6 @@
+book_filename: advstatcomp
+chapter_name: "Chapter "
+repo: https://github.com/rdpeng/advstatcomp/
+output_dir: _book
+rmd_files: ["index.Rmd"]
+new_session: yes
