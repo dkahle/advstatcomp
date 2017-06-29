@@ -1,0 +1,16 @@
+# Statistical Modeling
+
+
+The journey from statistical model to useful output has many steps, most of which are taught in other books and courses. The purpose of this book is to focus on one particular aspect of this journey: the development and implementation of statistical algorithms. 
+
+![(\#fig:statmodelprocess) The process of statistical modeling.](image/statmodelprocess.png)
+
+Add introduction here.
+ 
+\begin{equation}
+y = \beta_0 + \beta_1 x + \varepsilon
+(\#eq:regression)
+\end{equation}
+
+For example, in Equation \@ref(eq:regression)
+

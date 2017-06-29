@@ -1,6 +1,6 @@
 --- 
 title: "Advanced Statistical Computing"
-author: "Roger D. Peng, Brian S. Caffo"
+author: "Roger D. Peng"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 output:
@@ -17,17 +17,7 @@ url: 'https\://github.com/rdpeng/advstatcomp'
 description: "The book covers material taught in the Johns Hopkins Biostatistics Advanced Statistical Computing course."
 ---
 
-# Introduction {-}
-
-Add introduction here.
-
-\begin{equation}
-y = \beta_0 + \beta_1 x + \varepsilon
-\end{equation}
-
-$y = x\beta$
-
-## Setup {-}
+# Setup {-}
 
 ```{r,include=FALSE}
 pkgs <- sort(readLines("_R_package_list.txt"))
@@ -48,4 +38,6 @@ You can install all of these packages with the following code:
 ```{r,echo=FALSE, comment=NA}
 cat(installstr, "\n")
 ```
+
+
 
