@@ -1,0 +1,35 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+
+
+\title{Biostat 778: Homework 1}
+
+\begin{document}
+
+\maketitle
+
+\section{Improving consistent estimators}
+
+Let $\tilde{\theta}_n$ be an estimator of $\theta$ such that $\sqrt{n}(\tilde{\theta}_n-\theta)\rightarrow\mathcal{N}(0, \Sigma(\theta))$ and $\Sigma(\theta)<\infty$. Let $\hat{\theta}_n$ be the maximum likelihood estimator of $\theta$. Let $\tilde{\theta}^{(1)}_n$ be single iteration of Newton's method applied to $\tilde{\theta}$, i.e.
+\[
+\tilde{\theta}^{(1)}_n = \tilde{\theta}_n -\ell^{\prime\prime}(\tilde{\theta}_n)^{-1}\ell^\prime(\tilde{\theta}_n)
+\]
+Show that $\tilde{\theta}^{(1)}_n$ is asymptotically equivalent to the MLE.
+
+
+\section{Logistic Regression with Penalization}
+
+Write a function that can fit a logistic regression model while
+allowing for an $L^2$ penalty on the parameters. That is, if
+$\ell(\beta)$ is the log-likelihood for the parameter vector $\beta$,
+then you want to maximize the penalized log-likelihood
+
+\[
+\ell^\star(\beta,\lambda) = \ell(\beta) - \lambda\beta^\prime\beta
+\]
+Write your own implementation of Newton's method to optimize the
+penalized likelihood. The output of the function should be the maximum
+(penalized) likelihood estimates of $\beta$ and the asymptotic
+standard errors for each of the elements of $\hat{\beta}$.
+
+\end{document}

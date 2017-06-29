@@ -1,0 +1,31 @@
+---
+title: 'Biostat 778: Homework 2'
+output: pdf_document
+---
+
+## Mixture Models
+
+Consider data $y_1,y_2,\dots,y_n$ which are iid from a mixture of two Normal distributions,
+\[
+y_i \sim \lambda\mathcal{N}(\mu_1,\sigma_1^2)+(1-\lambda)\mathcal{N}(\mu_2,\sigma_2^2)
+\]
+where $\lambda\in (0,1)$.
+
+Estimate the unknown parameters $\lambda$, $\mu_1$, $\mu_2$,
+$\sigma_1^2$, and $\sigma_2^2$ using the following approaches:
+
+1. **Newton's method**: Implement the Newton iteration for this problem. Write a function that takes a vector of data as input (the $y_i$s) and returns as output a list containing a vector of maximum likelihood estimates and a vector of corresponding standard errors. [Note: Be sure to take care with parameter scaling here.]
+
+2. **EM algorithm**: Write a function that takes a vector of data as
+  input and finds the maximum likelihood estimates via the EM
+  algorithm. Use Louis's method to estimate the standard errors for
+  the MLEs. Return a list containing a vector of the MLEs and a vector
+  of the corresponding standard errors.
+
+3. **MCMC**: Write a function that constructs a Markov chain Monte Carlo sampler to estimate the posterior distribution of the unknown parameters (either Gibbs sampling or Metropolis-Hastings). Use appropriate prior distributions for the parameters. Your function should return a five column matrix where each column contains a sample from the posterior distribution of one of the parameters.
+  
+Please write your functions in R and do not rely on any canned optimization routines (i.e. `optim()`, `nlm()`, etc.) or MCMC packages (i.e. `MCMCpack1, Stan, etc.). The point is to gain a better understanding of the implementation details of these procedures and how they are or are not sensitive to certain features of a problem.
+
+Apply your functions to the data provided on the GitHub web
+site. Please place your code for the four functions (and any
+supporting functions) in a single code file and email this code file to me.
