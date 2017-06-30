@@ -1,0 +1,47 @@
+# Solving Nonlinear Equations
+
+
+
+## Rates of Convergence
+
+### Linear convergence
+
+Suppose we have a sequence $\{x_n\}$ such that $x_n\rightarrow x_\infty$ in $\mathfrak{R}^k$. We say the convergence is *linear* if there exists $r\in(0, 1)$ such that 
+
+\[
+\frac{\|x_{n+1}-x_\infty\|}{\|x_n-x_\infty\|}\leq r
+\]
+for all $n$ sufficiently large.
+
+#### Example
+
+The simple sequence $x_n = 1 + \left(\frac{1}{2}\right)^n$ converges linearly to $x_\infty = 1$ because
+
+\[
+\frac{\|x_{n+1}-x_\infty\|}{\|x_n-x_\infty\|}
+=
+\frac{\left(\frac{1}{2}\right)^{n+1}}{\left(\frac{1}{2}\right)^n}
+=
+\frac{1}{2}
+\]
+which is always in $(0, 1)$.
+
+### Superlinear Convergence
+
+We say a sequence $\{x_n\}$ converges to $x_\infty$ *superlinearly* if we have
+\[
+\lim_{n\rightarrow\infty} \frac{\|x_{n+1}-x_\infty\|}{\|x_n-x_\infty\|}
+=
+0
+\]
+
+The sequence above does not converge superlinearly because the ratio is always constant, and so never can converge to zero as $n\rightarrow\infty$. However, the sequence $x_n = 1 + \left(\frac{1}{n}\right)^n$ converges superlinearly to $1$.
+
+
+### Quadratic Convergence
+
+Quadratic convergence is the fastest form of convergence that we will discuss here and is generally considered desirable if possible to achieve. We say the sequence converges at a *quadratic* rate if there exists some constant $0 < M < \infty$ such that 
+\[
+\frac{\|x_{n+1}-x_\infty\|}{\|x_n-x_\infty\|^2}\leq M
+\]
+for all $n$ sufficiently large.
