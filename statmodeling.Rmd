@@ -44,7 +44,7 @@ There is a general principle that will be repeated in this book that Ken Lange c
 
 1. We want to maximize $f$ but it is difficult.
 
-2. We can compute an approximation to $f$, call it $g$.
+2. We can compute an approximation to $f$, call it $g$, based on local information about $f$.
 
 3. Instead of maximizing $f$, we "transfer" the maximization problem to $g$ and maximize $g$ instead.
 
