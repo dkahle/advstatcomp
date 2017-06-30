@@ -1,16 +1,53 @@
-# Statistical Modeling
+# Introduction
 
 
 The journey from statistical model to useful output has many steps, most of which are taught in other books and courses. The purpose of this book is to focus on one particular aspect of this journey: the development and implementation of statistical algorithms. 
 
 ![(\#fig:statmodelprocess) The process of statistical modeling.](image/statmodelprocess.png)
 
-Add introduction here.
- 
+## Example: Linear Models
+
+Consider the simple linear model. 
 \begin{equation}
 y = \beta_0 + \beta_1 x + \varepsilon
 (\#eq:regression)
 \end{equation}
 
-For example, in Equation \@ref(eq:regression)
+This model has unknown parameters $\beta_0$ and $\beta_1$. Given observations $(y_1, x_1), (y_2, x_2),\dots, (y_n, x_n)$, we can combine these data with the *likelihood principle*, which gives us a procedure for producing model parameter estimates. The likelihood can be *maximized* to produce *maximum likelihood estimates*,
+\[
+\hat{\beta}_0 = \frac{1}{n}\sum_{i=1}^n y_i
+\]
+and
+\[
+\hat{\beta}_1 
+= 
+\frac{\sum_{i=1}^n (x_i-\bar{x})(y_i-\bar{y})}{\sum_{i=1}^n (x_i-\bar{x})}
+\]
+These *statistics*, $\hat{\beta}_0$ and $\hat{\beta}_1$, can then be interpreted, depending on the area of application, or used for other purposes, perhaps as inputs to other procedures. In this simple example, we can see how each component of the modeling process works.
 
+| Component | Implementation | 
+| :-------- | :------------- |
+| Model | Linear regression |
+| Principle/Technique | Likelihood principle | 
+| Algorithm | Maximization |
+| Statistic | $\hat{\beta}_0$, $\hat{\beta}_1$ |
+
+In this example, the maximization of the likelihood was simple because the solution was available in closed form. However, in most other cases, there will not be a closed form solution and some specific algorithm will be needed to maximize the likelihood.
+
+Changing the implementation of a given component can lead to different outcomes further down the change and can even produce completely different outputs. Identical estimates for the parameters in this model can be produced (in this case) by replacing the likelihood principle with the principle of least squares. However, changing the principle to produce, for example, maximum *a posteriori* estimates would have produced different statistics at the end.
+
+
+
+## Optimization Transfer
+
+There is a general principle that will be repeated in this book that Ken Lange calls "optimization transfer". The basic idea applies to the problem of maximizing a function $f$.
+
+1. We want to maximize $f$ but it is difficult.
+
+2. We can compute an approximation to $f$, call it $g$.
+
+3. Instead of maximizing $f$, we "transfer" the maximization problem to $g$ and maximize $g$ instead.
+
+4. We iterate Steps 2 and 3 until convergence.
+
+The difficult problem of maximizing $f$ is replaced with the simpler problem of maximizing $g$ coupled with *iteration* (otherwise known as computation).
