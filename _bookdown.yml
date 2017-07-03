@@ -1,4 +1,4 @@
 book_filename: advstatcomp
 repo: https://github.com/rdpeng/advstatcomp/
-rmd_files: ["index.Rmd", "statmodeling.Rmd", "solvenonlinear.Rmd"]
+rmd_files: ["index.Rmd", "statmodeling.Rmd", "solvenonlinear.Rmd", "generaloptimization.Rmd", "emalgorithm.Rmd", "integration.Rmd", "independentMC.Rmd", "mcmc.Rmd"]
 new_session: yes
