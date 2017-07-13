@@ -38,16 +38,31 @@ Changing the implementation of a given component can lead to different outcomes 
 
 
 
-## Optimization Transfer
+## Principle of Optimization Transfer
 
-There is a general principle that will be repeated in this book that Ken Lange calls "optimization transfer". The basic idea applies to the problem of maximizing a function $f$.
+There is a general principle that will be repeated in this book that Kenneth Lange calls "optimization transfer". The basic idea applies to the problem of maximizing a function $f$.
 
-1. We want to maximize $f$ but it is difficult.
+1. We want to maximize $f$, but it is difficult to do so.
 
-2. We can compute an approximation to $f$, call it $g$, based on local information about $f$.
+2. We *can* compute an approximation to $f$, call it $g$, based on local information about $f$.
 
 3. Instead of maximizing $f$, we "transfer" the maximization problem to $g$ and maximize $g$ instead.
 
 4. We iterate Steps 2 and 3 until convergence.
 
-The difficult problem of maximizing $f$ is replaced with the simpler problem of maximizing $g$ coupled with *iteration* (otherwise known as computation).
+The difficult problem of maximizing $f$ is replaced with the simpler problem of maximizing $g$ coupled with *iteration* (otherwise known as computation). This is the optimization "transfer".
+
+Note that all of the above applies to minimization problems, because maximizing $f$ is equivalent to minimizing $-f$.
+
+
+
+
+
+
+
+
+
+
+
+
+
