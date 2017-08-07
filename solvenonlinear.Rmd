@@ -2,7 +2,31 @@
 
 ## Bisection Algorithm
 
-The bisection algorithm is a simple method for finding the roots of one-dimensional functions. 
+The bisection algorithm is a simple method for finding the roots of one-dimensional functions. The goal is to find a root $x_0\in[a, b]$ such that $f(x_0)=0$. The algorithm starts with a large interval, known to contain $x_0$, and then successively reduces the size of the interval until it brackets the root. The theoretical underpinning of the algorithm is the [intermediate value theorem](https://en.wikipedia.org/wiki/Intermediate_value_theorem) which states that if a continuous function $f$ takes values $f(a)$ and $f(b)$ at the end points of the interval $[a, b]$, then $f$ must take all values between $f(a)$ and $f(b)$ somewhere in the interval. So if $f(a) < \gamma < f(b)$, then there exists a $c\in[a, b]$ such that $f(c)=\gamma$.
+
+Using this information, we can present the bisection algorithm. First we must check that $\text{sign}(f(a)) \ne \text{sign}(f(b))$. Otherwise, the interval does not contain the root and might need to be widened. Then we can proceed:
+
+1. Let $c = \frac{a + b}{2}$.
+
+2. If $f(c) = 0$, stop and return $c$.
+
+3. If $\text{sign}(f(a))\ne\text{sign}(f(c))$, then set $b\leftarrow c$. Else if $\text{sign}(f(b))\ne\text{sign}(f(c))$, then set $a\leftarrow c$.
+
+4. Goto the beginning and repeat.
+
+After $n$ iterations, the size of the interval bracketing the root will be $2^{-n}(b-a)$.
+
+The bisection algorithm is useful, conceptually simple, and is easy to implement. In particular, you do not need any special information about the function $f$ except the ability to evaluate it at various points in the interval. The downsides are that it is only useful in one dimension and its convergence is linear, which is the slowest rate of convergence for algorithms we will discuss (more on that later).
+
+The bisection algorithm can run into problems in situations where the function $f$ is not well behaved. The ideal situation for the bisection algorithm looks something like this.
+
+![Ideal setup for bisection algorithm.](image/bisection-ideal.png)
+
+![Derivative of $f$ at the root is $0$.](image/bisection-tangent.png)
+
+![Two roots within the interval.](image/bisection-two.png)
+
+![Interval contains an asymptote.](image/bisection-asymptote.png)
 
 ## Rates of Convergence
 
