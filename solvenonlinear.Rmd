@@ -12,7 +12,7 @@ Using this information, we can present the bisection algorithm. First we must ch
 
 3. If $\text{sign}(f(a))\ne\text{sign}(f(c))$, then set $b\leftarrow c$. Else if $\text{sign}(f(b))\ne\text{sign}(f(c))$, then set $a\leftarrow c$.
 
-4. Goto the beginning and repeat.
+4. Goto the beginning and repeat until convergence (see below).
 
 After $n$ iterations, the size of the interval bracketing the root will be $2^{-n}(b-a)$.
 
@@ -22,11 +22,27 @@ The bisection algorithm can run into problems in situations where the function $
 
 ![Ideal setup for bisection algorithm.](image/bisection-ideal.png)
 
+Here, $f(a)$ and $f(b)$ are of opposite signs and the root is clearly in between $a$ and $b$.
+
+In the scenario below, the algorithm will not start because $f(a)>0$ and $f(b)>0$.
+
 ![Derivative of $f$ at the root is $0$.](image/bisection-tangent.png)
+
+
+In this next scenario, there are two roots between $a$ and $b$, in addition to having $f(a)>0$ and $f(b)>0$. One would need to reduce the length of the starting interval in order to find either root.
 
 ![Two roots within the interval.](image/bisection-two.png)
 
-![Interval contains an asymptote.](image/bisection-asymptote.png)
+In the scenario below, the algorithm will start because $f(a)$ and $f(b)$ are of opposite sign, but there is no root.
+
+![Interval contains an asymptote but no root.](image/bisection-asymptote.png)
+
+Convergence of the bisection algorithm can be determined by either having $|b-a|<\varepsilon$ for some small $\varepsilon$ or having $|f(b)-f(a)|<\varepsilon$. Which criterion you use will depend on the specific application and on what kinds of tolerances are required. 
+
+
+### Example: Quantiles
+
+Given a cumulative distribution function $F(x)$ and a number $p\in (0, 1)$, a quantile of $F$ is a number $x$ such that $F(x) = p$. The bisection algorithm can be used to find a quantile $x$ for a given $p$ by defining the function $g(x) = F(x) - p$ and solving for the value of $x$ that achieves $g(x) = 0$.
 
 ## Rates of Convergence
 
