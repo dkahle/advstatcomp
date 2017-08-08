@@ -44,7 +44,16 @@ Convergence of the bisection algorithm can be determined by either having $|b-a|
 
 Given a cumulative distribution function $F(x)$ and a number $p\in (0, 1)$, a quantile of $F$ is a number $x$ such that $F(x) = p$. The bisection algorithm can be used to find a quantile $x$ for a given $p$ by defining the function $g(x) = F(x) - p$ and solving for the value of $x$ that achieves $g(x) = 0$.
 
+Another way to put this is that we are inverting the CDF to compute $x = F^{-1}(p)$. So the bisection algorithm can be used to invert functions in these situations.
+
+
+
+
 ## Rates of Convergence
+
+One of the ways in which algorithms will be compared is via their rates of convergence to some limiting value. Typically, we have an interative algorithm that is trying to find the maximum/minimum of a function and we want an estimate of how long it will take to reach that optimal value. There are three rates of convergence that we will focus on here---linear, superlinear, and quadratic---which are ordered from slowest to fastest.
+
+In our context, rates of convergence are typically determined by how much information about the target function $f$ we use in the updating process of the algorithm.  Algorithms that use little information about $f$, such as the bisection algorithm, converge slowly. Algorithms that require more information about $f$, such as derivative information, typically converge more quickly. There is no free lunch! 
 
 ### Linear convergence
 
@@ -102,7 +111,7 @@ Extending the examples from above, the sequence $x_n = 1 + \left(\frac{1}{n}\rig
 
 ### Example: Bisection Algorithm
 
-For the bisection algorithm, the error that we make in estimating the root is $x_n = |b_n - a_n|$. However, we know that the size of the interval in the bisection algorithm decreases by a half at each iteration. Therefore, we can write $x_n = 2^{-n}|b_0 - a_0|$. Therefore, we can write the rate of convergence as
+For the bisection algorithm, the error that we make in estimating the root is $x_n = |b_n - a_n|$, where $a_n$ and $b_n$ represent the end points of the bracketing interval at iteration $n$. However, we know that the size of the interval in the bisection algorithm decreases by a half at each iteration. Therefore, we can write $x_n = 2^{-n}|b_0 - a_0|$ and we can write the rate of convergence as
 
 \[
 \frac{\|x_{n+1}-x_\infty\|}{\|x_n-x_\infty\|}
