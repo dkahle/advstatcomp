@@ -130,12 +130,75 @@ Therefore, the error of the bisection algorithm converges linearly to $0$.
 
 ## Functional Iteration
 
+We want to find a solution to the equation $f(x)=0$ for $f: \mathbb{R}^k\rightarrow \mathbb{R}$ and $x\in S\subset \mathbb{R}^k$. One approach to solving this problem is to characterize solutions as *fixed points* of other functions. For example, if $f(x_0) = 0$, then $x_0$ is a fixed point of the function $g(x)=f(x) + x$. Another such function might be $g(x) = x(f(x) + 1)$ for $x\ne 0$.
+
+In some situations, we can construct a function $g$ and a sequence $x_n = g(x_{n-1})$ such that we have the sequence $x_n\rightarrow x_\infty$ where $g(x_\infty) = x_\infty$. In other words, the sequence of values $x_n$ converges to a fixed point of $g$. If this fixed point satisfies $f(x_\infty) = 0$, then we have found a solution to our original problem. 
+
+When can such a functional iteration procedure work? The Shrinking Lemma gives us the conditions under which this type of sequence will converge.
+
+
+
 ### Proof of the Shrinking Lemma
+
+The Shrinking Lemma gives conditions under which a sequence derived via functional iteration will converge to a fixed point. Let $M$ be a closed subset of a complete normed vector space and let $f: M\rightarrow M$ be a map. Assume that there exists a $K$, $0<K<1$, such that for all $x,y\in M$, 
+
+\[
+\|f(x)-f(y)\|\leq K\|x-y\|.
+\]
+
+Then $f$ has a unique fixed point, i.e. there is a unique point $x_0\in M$ such that $f(x_0) = x_0$.
+
+*Proof*: The basic idea of the proof of this lemma is that for a give $x\in M$, we can construct a Cauchy sequence $\{f^n(x)\}$ that converges to $x_0$, where $f^n(x)$ represents the $n$th functional iteration of $x$, i.e. $f^2(x) = f(f(x))$.
+
+Given $x\in M$, we can write
+
+\[
+\|f^2(x)-f(x)\| = \|f(f(x)) - f(x)\|\leq K\|f(x)-x\|.
+\]
+
+By induction, we can therefore write
+
+\[
+\|f(^{n+1}(x)-f^{n}(x)\|\leq K\|f^n(x)-f^{n-1}(x)\|\leq K^n\|f(x)-x\|.
+\]
+
+It then follows that
+
+\begin{eqnarray*}
+\|f^n(x)-x\| & \leq & \|f^{n}(x)-f^{n-1}(x)\| + \|f^{n-1}(x)-f^{n-2}(x)\| + \cdots + \|f(x)-x\|\\
+& \leq & (K^{n-1} + K^{n-2} + \cdots + K)\|f(x)-x\|\\
+& \leq & \frac{1}{1-K}\|f(x)-x\|.
+\end{eqnarray*}
+
+Given integers $m\geq 1$ and $k\geq 1$, we can write 
+
+\begin{eqnarray*}
+\|f^{m+k}(x)-f^k(x)\| & \leq & K^m\|f^k(x)-x\|\\
+& \leq & K^m\frac{1}{1-K}\|f(x)-x\|
+\end{eqnarray*}
+
+Therefore, there exists some $N$ such that for all $m, n\geq N$ (say $n=m+k$), we have $\|f^n(x)-f^m(x)\|\leq\varepsilon$, because $K^m\rightarrow 0$ as $m\rightarrow\infty$. As a result, the sequence $\{f^n(x)\}$ is a Cauchy sequence, so let $x_0$ be its limit. 
+
+Given $\varepsilon>0$, let $N$ be such that for all $n\geq N$, $\|f^n(x)-x_0\|\leq\varepsilon$. Then we can also say that for $n\geq N$,
+
+\[
+\|f(x_0) - f^{n+1}(x)\|\leq \|x_0-f^n(x)\|\leq\varepsilon
+\]
+
+So what we have is $\{f^n(x)\}\rightarrow x_0$ and we have $\{f^n(x)\}\rightarrow f(x_0)$. Therefore, $x_0$ is a fixed point of $f$, so that $f(x_0)=x_0$.
+
+To show that $x_0$ is unique, suppose that $x_1$ is another fixed point of $f$. Then
+
+\[
+\|x_1-x_0\| = \|f(x_1)-f(x_0)\|\leq K\|x_1-x_0\|.
+\]
+Because $0<K<1$, we must have $x_0=x_1$.
+
 
 ### Convergence Rates for Shrinking Maps
 
 
-## Newton's Method
+### Newton's Method
 
 ### Proof of Newton's Method
 
