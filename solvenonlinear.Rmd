@@ -138,7 +138,7 @@ When can such a functional iteration procedure work? The Shrinking Lemma gives u
 
 
 
-### Proof of the Shrinking Lemma
+### The Shrinking Lemma
 
 The Shrinking Lemma gives conditions under which a sequence derived via functional iteration will converge to a fixed point. Let $M$ be a closed subset of a complete normed vector space and let $f: M\rightarrow M$ be a map. Assume that there exists a $K$, $0<K<1$, such that for all $x,y\in M$, 
 
@@ -352,6 +352,124 @@ Note that the formula above computes an inverse of a $k\times k$ matrix, which s
 rather than invert $\ell^{\prime\prime}(\theta_n)$ directly at every iteration.
 
 However, it may make sense to invert $\ell^{\prime\prime}(\theta_n)$ at the very end of the algorithm to obtain the *observed information matrix* $-\ell^{\prime\prime}(\hat{\theta})$. This observed information matrix can be used to obtain asymptotic standard errors for $\hat{\theta}$ for making inference about $\theta$. 
+
+
+#### Example: Estimating a Poisson Mean
+
+Suppose we observe data $x_1, x_2, \dots, x_n\stackrel{iid}{\sim}\text{Poisson}(\mu)$ and we would like to estimate $\mu$ via maximum likelihood. The log-likelihood induced by the Poisson model is
+\[
+\ell(\mu)
+=
+\sum_{i=1}^n
+x_i\log\mu - \mu
+=
+n\bar{x}\log\mu - n\mu
+\]
+The score function is
+\[
+\ell^\prime(\mu)
+=
+\frac{n\bar{x}}{\mu}-n
+\]
+It is clear that setting $\ell^\prime(\mu)$ to zero and solving for $\mu$ gives us that $\hat{\mu}=\bar{x}$. However, we can visualizing $\ell^\prime(\mu)$ and see how the Newton iteration would work in this simple scenario.
+
+```{r}
+set.seed(2017-08-09)
+x <- rpois(100, 5)
+xbar <- mean(x)
+n <- length(x)
+score <- function(mu) {
+        n * xbar / mu - n
+}
+curve(score, .3, 10, xlab = expression(mu), ylab = expression(score(mu)))
+abline(h = 0, lty = 3)
+```
+
+The figure above shows that this is clearly a nice smooth function for Newton's method to work on. Recall that for the Newton iteration, we also need the second derivative, which in this case is
+\[
+\ell^{\prime\prime}(\mu)
+=
+-\frac{n\bar{x}}{\mu^2}
+\]
+
+So the Newton iteration is then
+\begin{eqnarray*}
+\mu_{n+1}
+& = & 
+\mu_n - \left[-\frac{n\bar{x}}{\mu_n^2}\right]^{-1}\left(\frac{n\bar{x}}{\mu_n}-n
+\right)\\
+& = & 
+2\mu_n-\frac{\mu_n^2}{n}
+\end{eqnarray*}
+
+Using the functional programmign aspects of R, we can write a function that executes the functional iteration of Newton's method for however many times we which to run the algorithm.
+
+```{r}
+Funcall <- function(f, ...) f(...)
+
+## This creates takes a function as argument and generates an 
+## "iterator" version of it where the number of iterations is 
+## an argument
+Iterate <- function(f, n = 1) {
+        function(x) {
+                Reduce(Funcall, rep.int(list(f), n), x, right = TRUE)
+        }
+}
+single_iteration <- function(x) {
+        2 * x - x^2 / xbar
+}
+g <- function(x0, n) {
+        giter <- Iterate(single_iteration, n)
+        giter(x0)
+}
+
+## Allow for vector "n" argument (mainly for plotting)
+g <- Vectorize(g, "n")
+```
+
+Let's use a starting point of $\mu_0 = 10$. We can plot the score function along with the values of each of the Newton iterates for 7 iterations.
+
+```{r}
+par(mar = c(5, 5, 4, 1))
+curve(score, .35, 10, xlab = expression(mu), ylab = expression(score(mu)), cex.axis = 0.8)
+abline(h = 0, lty = 3)
+
+## Generate values for 7 functional iterations with a starting value of 10
+iterates <- g(10, 1:7)  
+abline(v = c(10, iterates), lty = 2)
+axis(3, c(10, iterates), labels = c(0, 1:7), cex = 2, cex.axis = 0.8)
+mtext("Iteration #", at = 2, line = 2.5)
+```
+
+We can see that by the 7th iteration we are quite close to the root, which in this case is `r xbar`.
+
+Another feature to note of Newton's algorithm here is that when the function is relatively flat, the algorithm makes large moves either to the left or right. However, when the function is relatively steep, the moves are smaller in distance. This makes sense because the size of the deviation from the current iterate depends on the inverse of $\ell^{\prime\prime}$ at the current iterate. When $\ell^\prime$ is flat, $\ell^{\prime\prime}$ will be small and hence its inverse large.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
