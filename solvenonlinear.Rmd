@@ -134,6 +134,8 @@ We want to find a solution to the equation $f(x)=0$ for $f: \mathbb{R}^k\rightar
 
 In some situations, we can construct a function $g$ and a sequence $x_n = g(x_{n-1})$ such that we have the sequence $x_n\rightarrow x_\infty$ where $g(x_\infty) = x_\infty$. In other words, the sequence of values $x_n$ converges to a fixed point of $g$. If this fixed point satisfies $f(x_\infty) = 0$, then we have found a solution to our original problem. 
 
+The most important algorithm that we will discuss based on functional iteration is Newton's method. The EM algorithm is also an algorithm that can be formulated as a functional iteration and we will discuss that at a later section.
+
 When can such a functional iteration procedure work? The Shrinking Lemma gives us the conditions under which this type of sequence will converge.
 
 
@@ -217,7 +219,7 @@ K \frac{|x_n-x_\infty|}{|x_n-x_\infty|}.
 Because $K\in(0,1)$, this shows that convergence to $x_\infty$ is linear.
 
 
-### Newton's Method
+## Newton's Method
 
 Newton's method build a sequence of values $\{x_n\}$ via functional iteration that converges to the root of a function $f$. Let that root be called $x_\infty$ and let $x_n$ be the current estimate. By the mean value theorem, we know there exists some $z$ such that
 \[
