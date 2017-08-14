@@ -118,20 +118,56 @@ which we can think of as the steepest descent direction "twisted" by the inverse
 x_{n+1} = x_n - f^{\prime\prime}(x_n)^{-1}f^\prime(x_n).
 \]
 
+Newton's method makes a quadratic approximation to the target function $f$ at each step of the algorithm. This follows the "optimization transfer" principle mentioned earlier, whereby we take a complex function $f$, replace it with a simpler function $g$ that is easier to optimize, and then optimize the simpler function repeatedly until convergence to the solution.
+
+We can visualize how Newton's method makes its quadratic approximation to the target function easily in one dimension. 
+
+
+```{r}
+curve(-dnorm(x), -2, 3, lwd = 2, ylim = c(-0.55, .1))
+xn <- -1.2
+abline(v = xn, lty = 2)
+axis(3, xn, expression(x[n]))
+g <- function(x) {
+        -dnorm(xn) + (x-xn) * xn * dnorm(xn) - 0.5 * (x-xn)^2 * (dnorm(xn) - xn * (xn * dnorm(xn)))
+}
+curve(g, -2, 3, add = TRUE, col = 4)
+op <- optimize(g, c(0, 3))
+abline(v = op$minimum, lty = 2)
+axis(3, op$minimum, expression(x[n+1]))
+
+
+```
+
+In the above figure, the next iterate, $x_{n+1}$ is actually further away from the minimum than our previous iterate $x_n$. The quadratic approximation that Newton's method makes to $f$ is not guaranteed to be good at every point of the function. 
+
+This shows an important "feature" of Newton's method, which is that it is not *monotone*. The successive iterations that Newton's method produces are not guaranteed to be improvements in the sense that each iterate is closer to the truth. The tradeoff here is that while Newton's method is very fast (quadratic convergence), it can be unstable at times. Monotone algorithms (like the EM algorithm that we discuss later) that always produce improvements, are more stable, but generally converge at slower rates. 
+
+In the next figure, however, we can see that the solution provided by the next approximation, $x_{n+2}$, is indeed quite close to the true minimum.
 
 
 
 
 
+```{r}
+curve(-dnorm(x), -2, 3, lwd = 2, ylim = c(-0.55, .1))
+xn <- -1.2
+op <- optimize(g, c(0, 3))
+abline(v = op$minimum, lty = 2)
+axis(3, op$minimum, expression(x[n+1]))
+
+xn <- op$minimum
+curve(g, -2, 3, add = TRUE, col = 4)
+op <- optimize(g, c(0, 3))
+abline(v = op$minimum, lty = 2)
+axis(3, op$minimum, expression(x[n+2]))
+```
 
 
+It is worth noting that in the rare event that $f$ is in fact a quadratic polynomial, Newton's method will converge in a single step because the quadratic approximation that it makes to $f$ will be exact. 
 
 
-
-
-
-
-
+### Newton's Method in R
 
 
 
