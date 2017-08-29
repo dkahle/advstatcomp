@@ -326,10 +326,10 @@ Next we compute the gradient and Hessian of the negative log-likelihood with res
 ```{r}
 nll_one <- deriv(~ -(y * (b0 + x * b1) - log(1 + exp(b0 + b1 * x))),
              c("b0", "b1"), function.arg = TRUE, hessian = TRUE)
-str(nll_one)
+nll_one
 ```
 
-The function `nll_one()` produced by `derive()` evaluates the negative log-likelihood for each data point. The output from `nll_one()` will have attributes `"gradient"` and `"hessian"` which represent the gradient and Hessian, respectively. For example, using the data from the `jager` dataset, we can evaluate the negative log-likelihood at $\beta_0=0, \beta_1=0$.
+The function `nll_one()` produced by `deriv()` evaluates the negative log-likelihood for each data point. The output from `nll_one()` will have attributes `"gradient"` and `"hessian"` which represent the gradient and Hessian, respectively. For example, using the data from the `jager` dataset, we can evaluate the negative log-likelihood at $\beta_0=0, \beta_1=0$.
 
 ```{r}
 x <- jager$x
@@ -364,16 +364,29 @@ res <- nlm(nll, c(0, 0))
 res
 ```
 
+Note first in the output that there is a `code` with the value $4$ and that the number of iterations is 100. Whenever the number of iterations in an optimization algorithm is a nice round number, the chances are good that it it some preset iteration limit. This in turn usually means the algorithm didn't converge. 
+
+In the help for `nlm()` we also learn that the `code` value of $4$ means "iteration limit exceeded", which is generally not good. Luckily, the solution is simple: we can increase the iteration limit and let the algorithm run longer.
+
 ```{r}
 res <- nlm(nll, c(0, 0), iterlim = 1000)
 res
 ```
+
+Here we see that the number of iterations used was 260, which is well below the iteration limit. Now we get `code` equal to $2$ which means that "successive iterates within tolerance, current iterate is probably solution". Sounds like good news!
+
+Lastly, most optimization algorithms have an option to scale your parameter values so that they roughly vary on the same scale. If your target function has paramters that vary on wildly different scales, this can cause a practical problem for the computer (it's not a problem for the theory). The way to deal with this in `nlm()` is to use the `typsize` arguemnt, which is a vector equal in length to the parameter vector which provides the relative sizes of the parameters. 
+
+Here, I give `typsize = c(1, 0.1)`, which indicates to `nlm()` that the first paramter, $\beta_0$, should be roughly $10$ times larger than the second parameter, $\beta_1$ when the target function is at its minimum.
 
 ```{r}
 res <- nlm(nll, c(0, 0), iterlim = 1000,
            typsize = c(1, 0.1))
 res
 ```
+
+Running this call to `nlm()` you'll notice that the solution is the same but the number of iterations is actually much less than before (`r res$iterations` iterations) which means the algorithm ran faster. Generally speaking, scaling the parameter vector appropriately (if possible) improves the performance of all optimization algorithms and in my experience is almost always a good idea. The specific values given to the `typsize` argument are not important; rather their relationships to each other (i.e. orders of magnitude) are what matter.
+
 
 ## Quasi-Newton
 
