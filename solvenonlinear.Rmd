@@ -429,6 +429,7 @@ g <- function(x0, n) {
 g <- Vectorize(g, "n")
 ```
 
+
 Let's use a starting point of $\mu_0 = 10$. We can plot the score function along with the values of each of the Newton iterates for 7 iterations.
 
 ```{r}

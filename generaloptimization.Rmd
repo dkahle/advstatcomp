@@ -1,5 +1,9 @@
 # General Optimization
 
+```{r, include=FALSE}
+knitr::opts_chunk$set(comment = NA)
+```
+
 The general optimization problem can be stated as follows. Given a fiunction $f: \mathbb{R}^k\rightarrow\mathbb{R}$, we want to find $\min_{x\in S}f(x)$, where $S\subset\mathbb{R}^k$. The general approach to solving this problem that we will discuss is called a *line search method*. With line search methods, given $f$ and a current estimate $x_n$ of the location of the minimum, we want to 
 
 1. Choose a direction $p_n$ in $k$-dimensional space;
@@ -256,7 +260,120 @@ Therefore the iteration is exactly the same as the Fisher scoring algorithm in t
 
 ### Newton's Method in R
 
+The `nlm()` function in R implements Newton's method for minimizing a function given a vector of starting values. By default, one does not need to supply the gradient or Hessian functions; they will be estimated numerically by the algorithm. However, for the purposes of improving accuracy of the algorithm, both the gradient and Hessian can be supplied as attributes of the target function. 
 
+
+As an example, we will use the `nlm()` function to fit a simple logistic regression model for binary data. This model specifies that $y_i\sim\text{Bernoulli}(p_i)$ where
+\[
+\log\frac{p_i}{1-p_i} = \beta_0 + x_i \beta_1
+\]
+and the goal is to estimate $\beta$ via maximum likelihood. Given the assumed Bernoulli distribution, we can write the log-likelihood for a single observation as
+\begin{eqnarray*}
+\log L(\beta) & = & \log\left\{\prod_{i=1}^n p_i^{y_i}(1-p_i)^{1-y_i}\right\}\\
+& = & 
+\sum_{i=1}^n y_i\log p_i + (1-y_i)\log(1-p_i)\\
+& = & 
+\sum_{i=1}^n y_i\log\frac{p_i}{1-p_i}+\log(1-p_i)\\
+& = &
+\sum_{i=1}^n y_i(\beta_0 + x_i\beta_1) + \log\left(\frac{1}{1+e^{(\beta_0 + x_i\beta_1)}}\right)\\
+& = & 
+\sum_{i=1}^n y_i(\beta_0 + x_i\beta_1) -\log\left(1+e^{(\beta_0 + x_i\beta_1)}\right)
+\end{eqnarray*}
+If we take the very last line of the above derivation and take a single element inside the sum, we have
+\[
+\ell_i(\beta)
+=
+y_i(\beta_0 + x_i\beta_1) -\log\left(1+e^{(\beta_0 + x_i\beta_1)}\right)
+\]
+We will need the gradient and Hessian of this with respect to $\beta$. Because the sum and the derivative are exchangeable, we can then sum each of the individual gradients and Hessians to get the full gradient and Hessian for the entire sample, so that
+\[
+\ell^\prime(\beta) = \sum_{i=1}^n\ell_i^\prime(\beta)
+\]
+and
+\[
+\ell^{\prime\prime}(\beta) = \sum_{i=1}^n \ell_i^{\prime\prime}(\beta).
+\]
+Now, taking the gradient and Hessian of the above expression may be mildly inconvenient, but it is far from impossible. Nevertheless, R provides an automated way to do symbolic differentiation so that manual work can be avoided. The `deriv()` function computes the gradient and Hessian of an expression symbolically so that it can be used in minimization routines. It cannot compute gradients of arbitrary expressions, but it it does support a wide range of common statistical functions. 
+
+#### Example: Trends in p-values Over Time
+
+The `tidypvals` package written by Jeff Leek contains datasets taken from the literature collecting p-values associated with various publications along with some information about those publications (i.e. journal, year, DOI). One question that comes up is whether there has been any trend over time in the claimed statistical significance of publications, where "statistical significance" is defined as having a p-value less than $0.05$.
+
+The `tidypvals` package is available from GitHub and can be installed using the `install_github()` function in the `remotes` package.
+
+```{r,eval=FALSE}
+remotes::install_github("jtleek/tidypvals")
+```
+
+Once installed, we will make use of the `jager2014` dataset. In particular, we are interseted in creating an indicator of whether a p-value is less than $0.05$ and regressing it on the `year` variable. 
+
+```{r,message=FALSE}
+library(tidypvals)
+library(dplyr)
+jager <- mutate(tidypvals::jager2014, 
+                pvalue = as.numeric(as.character(pvalue)),
+                y = ifelse(pvalue < 0.05 
+                           | (pvalue == 0.05 & operator == "lessthan"), 
+                           1, 0),
+                x = year - 2000) %>%
+        tbl_df
+```
+
+Note here that we have subtracted the year 2000 off of the `year` variable so that $x=0$ corresponds to `year == 2000`. 
+
+Next we compute the gradient and Hessian of the negative log-likelihood with respect to $\beta_0$ and $\beta_1$ using the `deriv()` function. Below, we specify `function.arg = TRUE` in the call to `deriv()` because we want `deriv()` to return a *function* whose arguments are `b0` and `b1`.
+
+```{r}
+nll_one <- deriv(~ -(y * (b0 + x * b1) - log(1 + exp(b0 + b1 * x))),
+             c("b0", "b1"), function.arg = TRUE, hessian = TRUE)
+str(nll_one)
+```
+
+The function `nll_one()` produced by `derive()` evaluates the negative log-likelihood for each data point. The output from `nll_one()` will have attributes `"gradient"` and `"hessian"` which represent the gradient and Hessian, respectively. For example, using the data from the `jager` dataset, we can evaluate the negative log-likelihood at $\beta_0=0, \beta_1=0$.
+
+```{r}
+x <- jager$x
+y <- jager$y
+str(nll_one(0, 0))
+```
+
+The `nll_one()` function evaluates the negative log-likelihood at each data point, but does not sum the points up as would be required to evaluate the full negative log-likelihood. Therefore, we will write a separate function that does that for the negative log-likelihood, gradient, and Hessian.
+
+```{r}
+nll <- function(b) {
+        v <- nll_one(b[1], b[2])
+        f <- sum(v)                                     ## log-likelihood
+        gr <- colSums(attr(v, "gradient"))              ## gradient vector
+        hess <- apply(attr(v, "hessian"), c(2, 3), sum) ## Hessian matrix
+        attributes(f) <- list(gradient = gr, hessian = hess)
+        f
+}
+```
+
+Now, we can evaluate the full negative log-likelihood with the `nll()` function. Note that `nll()` takes a single numeric vector as input as this is what the `nlm()` function is expecting.
+
+```{r}
+nll(c(0, 0))
+```
+ 
+ 
+Using $\beta_0=0,\beta_1=0$ as the initial value, we can call `nlm()` to minimize the negative log-likelihood.
+ 
+```{r}
+res <- nlm(nll, c(0, 0))
+res
+```
+
+```{r}
+res <- nlm(nll, c(0, 0), iterlim = 1000)
+res
+```
+
+```{r}
+res <- nlm(nll, c(0, 0), iterlim = 1000,
+           typsize = c(1, 0.1))
+res
+```
 
 ## Quasi-Newton
 
@@ -293,6 +410,8 @@ The above updating procedure was developed by Broyden, Fletcher, Goldfarb, and S
 
 Note that in the case of the BFGS method, we actually use $B_n^{-1}$ in the Newton update. However, it is not necessary to solve for $B_{n}$ and then invert it directly. We can directly update $B_{n-1}^{-1}$ to produce $B_{n}^{-1}$ via the [Sherman-Morrison update formula](https://en.wikipedia.org/wiki/Sherman–Morrison_formula). This formula allows us to generate the new inverse matrix by using the previous inverse and some matrix multiplication. 
 
+### Quasi-Newton Methods in R
+
 
 
 
@@ -310,7 +429,7 @@ The idea of coordinate descent methods is simple. If $f$ is a $k$-dimensional fu
 
 ### Generalized Additive Models
 
-
+Brian Caffo has a nice [video introduction to generalized additive models](https://youtu.be/f9Rj6SHPHUU)
 
 
 
