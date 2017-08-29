@@ -21,7 +21,7 @@ y = \beta_0 + \beta_1 x + \varepsilon
 
 This model has unknown parameters $\beta_0$ and $\beta_1$. Given observations $(y_1, x_1), (y_2, x_2),\dots, (y_n, x_n)$, we can combine these data with the *likelihood principle*, which gives us a procedure for producing model parameter estimates. The likelihood can be *maximized* to produce *maximum likelihood estimates*,
 \[
-\hat{\beta}_0 = \frac{1}{n}\sum_{i=1}^n y_i
+\hat{\beta}_0 = \bar{} - \hat{\beta}_1\bar{x}
 \]
 and
 \[

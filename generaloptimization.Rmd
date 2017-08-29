@@ -166,15 +166,149 @@ axis(3, op$minimum, expression(x[n+2]))
 
 It is worth noting that in the rare event that $f$ is in fact a quadratic polynomial, Newton's method will converge in a single step because the quadratic approximation that it makes to $f$ will be exact. 
 
+### Generalized Linear Models
+
+The generalized linear model is an extension of the standard linear model to allow for non-Normal response distributions. The distributions used typically come from an exponential family whose density functions share some common characteristics. With a GLM, we typical present it as $y_i\sim p(y_i\mid\mu_i)$, where $p$ is an exponential family distribution, $\mathbb{E}[y_i]=\mu_i$, 
+\[
+g(\mu_i) = x_i^\prime\beta,
+\]
+where $g$ is a nonlinear link function, and $\text{Var}(y_i) = V(\mu)$ where $V$ is a known variance function.
+
+Unlike the standard linear model, the maximum likelihood estimate of the parameter vector $\beta$ cannot be obtained in closed form, so an iterative algorithm must be used to obtain the estimate. The traditional algorithm used is the Fisher scoring algorithm. This algorithm uses a linear approximation to the nonlinear link function $g$, which can be written as
+\[
+g(y_i)\approx g(\mu_i) + (y_i-\mu_i)g^\prime(\mu_i).
+\]
+The typical notation of GLMs refers to $z_i=g(\mu_i) + (y_i-\mu_i)g^\prime(\mu_i)$ as the *working response*. The Fisher scoring algorithm then works as follows.
+
+1. Start with $\hat{\mu}_i$, some initial value.
+
+2. Compute $z_i = g(\hat{\mu}_i) + (y_i-\hat{\mu}_i)g^\prime(\hat{\mu}_i)$.
+
+3. Given the $n\times 1$ vector of working responses $z$ and the $n\times p$  predictor matrix $X$ we compute a weighted regression of $z$ on $X$ to get 
+\[
+\beta_n = (X^\prime WX)^{-1}X^\prime Wz
+\]
+where $W$ is a diagonal matrix with diagonal elements
+\[
+w_{ii} = \left[g^\prime(\mu_i)^2V(\mu_i)\right]^{-1}.
+\]
+
+4. Given $\beta_n$, we can recompute $\hat{\mu}_i=g^{-1}(x_i^\prime\beta_n)$ and go to 2.
+
+Note that in Step 3 above, the weights are simply the inverses of the variance of $z_i$, i.e. 
+\begin{eqnarray*}
+\text{Var}(z_i) 
+& = & 
+\text{Var}(g(\mu_i) + (y_i-\mu_i)g^\prime(\mu_i))\\
+& = & 
+\text{Var}((y_i-\mu_i)g^\prime(\mu_i))\\
+& = & V(\mu_i)g^\prime(\mu_i)^2
+\end{eqnarray*}
+Naturally, when doing a weighted regression, we would weight by the inverse of the variances.
+
+
+#### Example: Poisson Regression
+
+For a Poisson regression, we have $y_i\sim\text{Poisson}(\mu_i)$ where $g(\mu) = \log\mu_i = x_i^\prime\beta$ because the log is the canonical link function for the Poisson distribution. We also have $g^\prime(\mu_i) = \frac{1}{\mu_i}$ and $V(\mu_i) = \mu_i$. Therefore, the Fisher scoring algorithm is
+
+1. Initialize $\hat{\mu}_i$, perhaps using $y_i + 1$ (to avoid zeros).
+
+2. Let $z_i = \log\hat{\mu}_i + (y_i-\hat{\mu}_i)\frac{1}{\hat{\mu}_i}$
+
+3. Regression $z$ on $X$ using the weights
+\[
+w_{ii} = \left[\frac{1}{\hat{\mu}_i^2}\hat{\mu}_i\right]^{-1} = \hat{\mu}_i.
+\]
+
+Using the Poisson regression example, we can draw a connection between the usual Fisher scoring algorithm for fitting GLMs and Newton's method. Recall that if $\ell(\beta)$ is the log-likelihood as a function of the regression paramters $\beta$, then the Newton updating scheme is
+\[
+\beta_{n+1} = \beta_n + \ell^{\prime\prime}(\beta_n)^{-1}[-\ell^\prime(\beta_n)].
+\]
+
+The log-likelihoood for a Poisson regression model can be written in vector/matrix form as
+\[
+\ell(\beta) = y^\prime X\beta - \exp(X\beta)^\prime\mathbf{1}
+\]
+where the exponential is taken component-wise on the vector $X\beta$. The gradient function is
+\[
+\ell^\prime(\beta) = X^\prime y - X^\prime \exp(X\beta)
+=
+X^\prime(y-\mu)
+\]
+and the Hessian is
+\[
+\ell^{\prime\prime}(\beta) = -X^\prime W X
+\]
+where $W$ is a diagonal matrix with the values $w_{ii} = \exp(x_i^\prime\beta)$ on the diagonal. The Newton iteration is then
+\begin{eqnarray*}
+\beta_{n+1} 
+& = & 
+\beta_n + (-X^\prime WX)^{-1}(-X^\prime(y-\mu))\\
+& = & 
+\beta_n + (X^\prime WX)^{-1}XW(z - X\beta_n)\\
+& = &
+(X^\prime WX)^{-1}X^\prime Wz + \beta_n - (X^\prime WX)^{-1}X^\prime WX\beta_n\\
+& = &
+(X^\prime WX)^{-1}X^\prime Wz
+\end{eqnarray*}
+Therefore the iteration is exactly the same as the Fisher scoring algorithm in this case. In general, Newton's method and Fisher scoring will coincide with any generalized linear model using an exponential family with a canonical link function. 
+
 
 ### Newton's Method in R
 
 
 
+## Quasi-Newton
+
+Quasi-Newton methods arise from the desire to use something like Newton's method for its speed but without having to compute the Hessian matrix each time. The idea is that if the Newton iteration is
+\[
+\theta_{n+1} = \theta_n-f^{\prime\prime}(\theta_n)^{-1}f^\prime(\theta_n)
+\]
+is there some other matrix that we can use to replace either $f^{\prime\prime}(\theta_n)$ or $f^{\prime\prime}(\theta_n)^{-1}$? That is can we use a revised iteration,
+\[
+\theta_{n+1} = \theta_n-B_n^{-1}f^\prime(\theta_n)
+\]
+where $B$ is simpler to compute but still allows the algorith to converge quickly?
+
+This is a challenging problem because $f^{\prime\prime}(\theta_n)$ gives us a lot of information about the surface of $f$ at $\theta_n$ and throwing out this information results in, well, a severe loss of information. 
+
+The idea with Quasi-Newton is to find a solution $B_n$ to the problem
+\[
+f^\prime(\theta_n)-f^\prime(\theta_{n-1})
+=
+B_n (\theta_n-\theta_{n-1}).
+\]
+The equation above is sometimes referred to as the secant equation. Note first that this requires us to store two values, $\theta_n$ and $\theta_{n-1}$. Also, in one dimension, the solution is trivial: we can simply divide the left-hand-side by $\theta_n-\theta_{n-1}$. However, in more than one dimension, there exists an infinite number of solutions and we need some way to constrain the problem to arrive at a sensible answer.
+
+The key to Qusi-Newton approaches in general is that while we initially may not have much information about $f$, with each iteration we obtain just a little bit more. Specifically, we learn more about the Hessian matrix through successive differences in $f^\prime$. Therefore, with each iteration we can incorporate this newly obtained information into our estimate of the Hessian matrix. The constraints placed on the matrix $B_n$ is that it be *symmetric* and that it be close to $B_{n-1}$. These constraints can be satisfied by update $B_n$ via the addition of rank one matrices.
+
+If we let $y_n = f^\prime(\theta_n)-f^\prime(\theta_{n-1})$ and $s_n = \theta_n-\theta_{n-1}$, then the secant equation is $y_n = B_ns_n$. One updating procedures for $B_n$
+
+\[
+B_{n} = B_{n-1} + \frac{y_ny_n^\prime}{y_n^\prime s_n}
+- \frac{B_{n-1}s_ns_n^\prime B_{n-1}^\prime}{s_n^\prime B_{n-1}s_n}
+\]
+
+The above updating procedure was developed by Broyden, Fletcher, Goldfarb, and Shanno (BFGS). An analogous approach, which solves the following secant equation, $H_n y_n = s_n$ was proposed by Davidon, Fletcher, and Powell (DFP). 
+
+Note that in the case of the BFGS method, we actually use $B_n^{-1}$ in the Newton update. However, it is not necessary to solve for $B_{n}$ and then invert it directly. We can directly update $B_{n-1}^{-1}$ to produce $B_{n}^{-1}$ via the [Sherman-Morrison update formula](https://en.wikipedia.org/wiki/Sherman–Morrison_formula). This formula allows us to generate the new inverse matrix by using the previous inverse and some matrix multiplication. 
 
 
 
 
+
+
+## Conjugate Gradient
+
+
+
+## Coordinate Descent
+
+The idea of coordinate descent methods is simple. If $f$ is a $k$-dimensional function, we can minimize $f$ by successively minimizing each of the individual dimensions of $f$ in a cyclic fashion, while holding the values of $f$ in the other dimensions fixed. This approach is sometimes referred to as cyclic coordinate descent. The primary advantage of this approach is that it takes an arbitrarily complex $k$-dimensional problem and reduces it to a collection of $k$ one-dimensional problems. The disadvantage is that convergence can often be painfully slow, particularly in problems where $f$ is not well-behaved. In statistics, a popular version of this algorithm is known as *backfitting* and is used to fit generalized additive models.
+
+
+
+### Generalized Additive Models
 
 
 
