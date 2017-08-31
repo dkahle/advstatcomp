@@ -326,6 +326,11 @@ Next we compute the gradient and Hessian of the negative log-likelihood with res
 ```{r}
 nll_one <- deriv(~ -(y * (b0 + x * b1) - log(1 + exp(b0 + b1 * x))),
              c("b0", "b1"), function.arg = TRUE, hessian = TRUE)
+```
+
+Here's what that function looks like.
+
+```{r}
 nll_one
 ```
 
@@ -345,7 +350,8 @@ nll <- function(b) {
         f <- sum(v)                                     ## log-likelihood
         gr <- colSums(attr(v, "gradient"))              ## gradient vector
         hess <- apply(attr(v, "hessian"), c(2, 3), sum) ## Hessian matrix
-        attributes(f) <- list(gradient = gr, hessian = hess)
+        attributes(f) <- list(gradient = gr, 
+                              hessian = hess)
         f
 }
 ```
@@ -364,16 +370,16 @@ res <- nlm(nll, c(0, 0))
 res
 ```
 
-Note first in the output that there is a `code` with the value $4$ and that the number of iterations is 100. Whenever the number of iterations in an optimization algorithm is a nice round number, the chances are good that it it some preset iteration limit. This in turn usually means the algorithm didn't converge. 
+Note first in the output that there is a `code` with the value `4` and that the number of iterations is 100. Whenever the number of iterations in an optimization algorithm is a nice round number, the chances are good that it it some preset iteration limit. This in turn usually means the algorithm didn't converge. 
 
-In the help for `nlm()` we also learn that the `code` value of $4$ means "iteration limit exceeded", which is generally not good. Luckily, the solution is simple: we can increase the iteration limit and let the algorithm run longer.
+In the help for `nlm()` we also learn that the `code` value of `4` means "iteration limit exceeded", which is generally not good. Luckily, the solution is simple: we can increase the iteration limit and let the algorithm run longer.
 
 ```{r}
 res <- nlm(nll, c(0, 0), iterlim = 1000)
 res
 ```
 
-Here we see that the number of iterations used was 260, which is well below the iteration limit. Now we get `code` equal to $2$ which means that "successive iterates within tolerance, current iterate is probably solution". Sounds like good news!
+Here we see that the number of iterations used was 260, which is well below the iteration limit. Now we get `code` equal to `2` which means that "successive iterates within tolerance, current iterate is probably solution". Sounds like good news!
 
 Lastly, most optimization algorithms have an option to scale your parameter values so that they roughly vary on the same scale. If your target function has paramters that vary on wildly different scales, this can cause a practical problem for the computer (it's not a problem for the theory). The way to deal with this in `nlm()` is to use the `typsize` arguemnt, which is a vector equal in length to the parameter vector which provides the relative sizes of the parameters. 
 
@@ -425,6 +431,7 @@ Note that in the case of the BFGS method, we actually use $B_n^{-1}$ in the Newt
 
 ### Quasi-Newton Methods in R
 
+Quasi-Newton methods in R can be accessed through the `optim()` function, which is a general purpose optimization function. The `optim()` function implements a variety of methods but in this section we will focus on the `"BFGS"` and `"L-BFGS-B"`methods. 
 
 
 
