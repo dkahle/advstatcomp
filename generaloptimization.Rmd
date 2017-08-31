@@ -404,7 +404,7 @@ is there some other matrix that we can use to replace either $f^{\prime\prime}(\
 \[
 \theta_{n+1} = \theta_n-B_n^{-1}f^\prime(\theta_n)
 \]
-where $B$ is simpler to compute but still allows the algorith to converge quickly?
+where $B_n$ is simpler to compute but still allows the algorithm to converge quickly?
 
 This is a challenging problem because $f^{\prime\prime}(\theta_n)$ gives us a lot of information about the surface of $f$ at $\theta_n$ and throwing out this information results in, well, a severe loss of information. 
 
@@ -414,9 +414,9 @@ f^\prime(\theta_n)-f^\prime(\theta_{n-1})
 =
 B_n (\theta_n-\theta_{n-1}).
 \]
-The equation above is sometimes referred to as the secant equation. Note first that this requires us to store two values, $\theta_n$ and $\theta_{n-1}$. Also, in one dimension, the solution is trivial: we can simply divide the left-hand-side by $\theta_n-\theta_{n-1}$. However, in more than one dimension, there exists an infinite number of solutions and we need some way to constrain the problem to arrive at a sensible answer.
+The equation above is sometimes referred to as the *secant equation*. Note first that this requires us to store two values, $\theta_n$ and $\theta_{n-1}$. Also, in one dimension, the solution is trivial: we can simply divide the left-hand-side by $\theta_n-\theta_{n-1}$. However, in more than one dimension, there exists an infinite number of solutions and we need some way to constrain the problem to arrive at a sensible answer.
 
-The key to Qusi-Newton approaches in general is that while we initially may not have much information about $f$, with each iteration we obtain just a little bit more. Specifically, we learn more about the Hessian matrix through successive differences in $f^\prime$. Therefore, with each iteration we can incorporate this newly obtained information into our estimate of the Hessian matrix. The constraints placed on the matrix $B_n$ is that it be *symmetric* and that it be close to $B_{n-1}$. These constraints can be satisfied by update $B_n$ via the addition of rank one matrices.
+The key to Quasi-Newton approaches in general is that while we initially may not have much information about $f$, with each iteration we obtain just a little bit more. Specifically, we learn more about the Hessian matrix through successive differences in $f^\prime$. Therefore, with each iteration we can incorporate this newly obtained information into our estimate of the Hessian matrix. The constraints placed on the matrix $B_n$ is that it be *symmetric* and that it be close to $B_{n-1}$. These constraints can be satisfied by updating $B_n$ via the addition of rank one matrices.
 
 If we let $y_n = f^\prime(\theta_n)-f^\prime(\theta_{n-1})$ and $s_n = \theta_n-\theta_{n-1}$, then the secant equation is $y_n = B_ns_n$. One updating procedures for $B_n$
 
@@ -433,7 +433,40 @@ Note that in the case of the BFGS method, we actually use $B_n^{-1}$ in the Newt
 
 Quasi-Newton methods in R can be accessed through the `optim()` function, which is a general purpose optimization function. The `optim()` function implements a variety of methods but in this section we will focus on the `"BFGS"` and `"L-BFGS-B"`methods. 
 
+#### Example: Truncated Normal Distribution
 
+
+```{r,include=FALSE}
+library(readr)
+library(dplyr)
+dat <- read_csv("daily_44201_2016.csv.bz2")
+names(dat) <- make.names(names(dat))
+o3 <- filter(dat, State.Code == "06" & County.Code == "037" 
+             & Site.Num == "0002") %>%
+        select(Date.Local, Arithmetic.Mean) %>%
+        rename(ozone = Arithmetic.Mean, date = Date.Local) %>%
+        mutate(ozone = ozone * 1000)
+```
+
+```{r,message=FALSE}
+library(readr)
+library(ggplot2)
+o3 <- read_csv("los_angeles_ozone.csv") %>%
+        filter(!is.na(ozone))
+ggplot(o3, aes(x = ozone)) + 
+        geom_histogram(bins = nclass.Sturges(o3$ozone))
+```
+
+
+```{r}
+nll_one <- deriv(~ -log(dnorm((x - mu)/s) / (pnorm((x-mu)/s) - pnorm(-mu/s))),
+                 c("mu", "s"), function.arg = TRUE)
+nll <- function(p) {
+        v <- nll_one(p[1], p[2])
+        gr <- colSums(attr(v, "gradient"))
+        structure(sum(v), gradient = gr)
+}
+```
 
 
 
