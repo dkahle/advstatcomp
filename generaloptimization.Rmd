@@ -433,41 +433,181 @@ Note that in the case of the BFGS method, we actually use $B_n^{-1}$ in the Newt
 
 Quasi-Newton methods in R can be accessed through the `optim()` function, which is a general purpose optimization function. The `optim()` function implements a variety of methods but in this section we will focus on the `"BFGS"` and `"L-BFGS-B"`methods. 
 
-#### Example: Truncated Normal Distribution
+#### Example: Truncated Normal and Mixture of Normal Distributions
 
-
-```{r,include=FALSE}
-library(readr)
-library(dplyr)
-dat <- read_csv("daily_44201_2016.csv.bz2")
-names(dat) <- make.names(names(dat))
-o3 <- filter(dat, State.Code == "06" & County.Code == "037" 
-             & Site.Num == "0002") %>%
-        select(Date.Local, Arithmetic.Mean) %>%
-        rename(ozone = Arithmetic.Mean, date = Date.Local) %>%
-        mutate(ozone = ozone * 1000)
-```
+The data were obtained from the [U.S. Environmental Protection Agency's Air Quality System](http://aqsdr1.epa.gov/aqsweb/aqstmp/airdata/download_files.html) web page. For this example we will be using the daily average concentrations of nitrogen dioxide (NO~2~) for 2016 found in [this file](http://aqsdr1.epa.gov/aqsweb/aqstmp/airdata/daily_42602_2016.zip). In particular, we will focus on the data for monitors located in Washington State.
 
 ```{r,message=FALSE}
 library(readr)
+library(tidyr)
+dat0 <- read_csv("daily_42602_2016.csv.bz2")
+names(dat0) <- make.names(names(dat0))
+dat <- filter(dat0, State.Name == "Washington") %>%
+        unite(site, State.Code, County.Code, Site.Num) %>%
+        rename(no2 = Arithmetic.Mean, date = Date.Local) %>%
+        select(site, date, no2)
+```
+
+A kernel density estimate of the NO~2~ data shows the following distribution.
+
+```{r}
 library(ggplot2)
-o3 <- read_csv("los_angeles_ozone.csv") %>%
-        filter(!is.na(ozone))
-ggplot(o3, aes(x = ozone)) + 
-        geom_histogram(bins = nclass.Sturges(o3$ozone))
+ggplot(dat, aes(x = no2)) + 
+        geom_density()
 ```
 
 
+As an initial stab at characterizing the distribution of the NO~2~ values (and to demonstrate the use of `optim()` for fitting models), we will try to fit a truncated Normal model to the data. The truncated Normal can make sense for these kinds of data because they are strictly positive, making a standard Normal distribution inappropriate. 
+
+For the truncated normal, truncated from below at $0$, the density of the data is
+
+\[
+f(x) = \frac{\frac{1}{\sigma}\varphi\left(\frac{x-\mu}{\sigma}\right)}{\int_0^\infty \frac{1}{\sigma}\varphi\left(\frac{x-\mu}{\sigma}\right)\,dx}.
+\]
+
+The unknown parameters are $\mu$ and $\sigma$. Given the density, we can attempt to estimate $\mu$ and $\sigma$ by maximum likelihood. In this case, we will minimize the *negative* log-likelihood of the data. 
+
+We can use the `deriv()` function to compute the negative log-likelihood and its gradient automatically. Because we are using quasi-Newton methods here we do not need the Hessian matrix.
+
 ```{r}
-nll_one <- deriv(~ -log(dnorm((x - mu)/s) / (pnorm((x-mu)/s) - pnorm(-mu/s))),
-                 c("mu", "s"), function.arg = TRUE)
+nll_one <- deriv(~ -log(dnorm((x - mu)/s) / s) + log(0.5),
+                 c("mu", "s"), 
+                 function.arg = TRUE)
+```
+
+The `optim()` function works a bit differently from `nlm()` in that instead of having the gradient as an attribute of the negative log-likelhood, the gradient needs to be a separate function. 
+
+```{r}
+## Negative log-likelhood
 nll <- function(p) {
         v <- nll_one(p[1], p[2])
-        gr <- colSums(attr(v, "gradient"))
-        structure(sum(v), gradient = gr)
+        sum(v)
+}
+
+## Gradient function
+nll_grad <- function(p) {
+        v <- nll_one(p[1], p[2])
+        colSums(attr(v, "gradient"))
 }
 ```
 
+Now we can pass the `nll()` and `nll_grad()` functions to `optim()` to obtain estimates of $\mu$ and $\sigma$. We will use starting values of $\mu=1$ and $\sigma=5$. To use the `"BFGS"` quasi-Newton method you need to specify it in the `method` argument. The default method for `optim()` is the [Nelder-Mead simplex method](https://en.wikipedia.org/wiki/Nelder–Mead_method). We also specify `hessian = TRUE` to tell `optim()` to numerically calculate the Hessian matrix at the optimum point.
+
+```{r}
+x <- dat$no2
+res <- optim(c(1, 5), nll, gr = nll_grad, 
+             method = "BFGS", hessian = TRUE)
+res
+```
+
+The `optim()` function returns a list with 5 elements (plus a Hessian matrix if `hessian = TRUE` is set). The first element that you should check is the `onvergence` code. If `convergece` is 0, that is good. Anything other than 0 could indicate a problem, the nature of which depends on the algorithm you are using (see the help page for `optim()` for more details). This time we also had `optim()` compute the Hessian (numerically) at the optimal point so that we could derive asymptotic standard errors if we wanted. 
+
+First note that there were a few messages printed to the console while the algorithm was running indicating that `NaN`s were produced by the target function. This is likely because the function was attempting to take the log of negative numbers. Because we used the `"BFGS"` algorithm, we were conducting an unconstrained optimization. Therefore, it's possible that the algorithm's search produced negative values for $\sigma$, which don't make sense in this context. In order to constrain the search, we can use the `"L-BFGS-B"` methods which is a "limited memory" BFGS algorithm with "box constraints". This allows you to put a lower and upper bound on each parameter in the model.
+
+Note that `optim()` allows your target function to produce `NA` or `NaN` values, and indeed from the output it seems that the algorithm eventually converged on the answer anyway. But since we know that the parameters in this model are constrained, we can go ahead and use the alternate approach.
+
+Here we set the lower bound for all parameters to be 0 but allow the upper bound to be infinity (`Inf`), which is the default.
+
+```{r}
+res <- optim(c(1, 5), nll, gr = nll_grad, 
+             method = "L-BFGS-B", hessian = TRUE,
+             lower = 0)
+res
+```
+
+We can see now that the warning messages are gone, but the solution is identical to that produced by the original `"BFGS"` method. 
+
+The maximum likelihood estimate of $\mu$ is `r res$par[1]` and the estimate of $\sigma$ is `r res$par[2]`. If we wanted to obtain asymptotic standard errors for these parameters, we could look at the Hessian matrix.
+
+```{r}
+solve(res$hessian) %>%
+        diag %>%
+        sqrt
+```
+
+In this case though, we don't care much for the standard errors so we will move on.
+
+We can plot the original density smooth of the data versus the fitted truncated Normal model to see how well we charaterize the distribution. First we will evaluate the fitted model at 100 points between 0 and 50.
+
+```{r}
+xpts <- seq(0, 50, len = 100)
+dens <- data.frame(xpts = xpts,
+                   ypts = dnorm(xpts, res$par[1], res$par[2]))
+```
+
+Then we can overlay the fitted model on top of the density using `geom_line()`. 
+
+```{r}
+ggplot(dat, aes(x = no2)) + 
+        geom_density() + 
+        geom_line(aes(x = xpts, y = ypts), data = dens, col = "steelblue",
+                  lty = 2)
+
+```
+
+
+Looking at the density smooth of the data, it's clear that there are two modes to the data, suggesting that a truncated Normal might not be sufficient to characterize the data. One alternative in this case would be a mixture of two Normals, which might capture the two modes. For a two-component mixture, the density for the data would be
+
+\[
+f(x)
+=
+\lambda\frac{1}{\sigma}\varphi\left(\frac{x-\mu_1}{\sigma_1}\right) + 
+(1-\lambda)\frac{1}{\sigma}\varphi\left(\frac{x-\mu_2}{\sigma_2}\right).
+\]
+
+Commonly, we see that this model is fit using more complex algorithms like the EM algorithm or Markov chain Monte Carlo methods. While those methods do provide greater stability in the estimation process (as we will see later), we can in fact us Newton-type methods to maximize the likelihood (with a little care). 
+
+
+
+```{r}
+nll_one <- deriv(~ -log(lambda * dnorm((x-mu1)/s1)/s1 + (1-lambda)*dnorm((x-mu2)/s2)/s2), 
+                 c("mu1", "mu2", "s1", "s2", "lambda"), 
+                 function.arg = TRUE)
+nll <- function(p) {
+        p <- as.list(p)
+        v <- do.call("nll_one", p)
+        sum(v)
+}
+nll_grad <- function(p) {
+        v <- do.call("nll_one", as.list(p))
+        colSums(attr(v, "gradient"))
+}
+```
+
+
+```{r,error=TRUE}
+x <- dat$no2
+pstart <- c(5, 10, 2, 3, 0.5)
+res <- optim(pstart, nll, gr = nll_grad, method = "L-BFGS-B",
+             control = list(parscale = c(2, 2, 1, 1, 0.1)),
+             lower = 0, upper = c(Inf, Inf, Inf, Inf, 1))
+```
+
+
+
+
+```{r}
+xpts <- seq(0, 50, len = 100)
+dens <- with(res, {
+        data.frame(xpts = xpts, 
+                   ypts = par[5]*dnorm(xpts, par[1], par[3]) + (1-par[5])*dnorm(xpts, par[2], par[4]))
+})
+ggplot(dat, aes(x = no2)) + 
+        geom_density() + 
+        geom_line(aes(x = xpts, y = ypts), data = dens, col = "steelblue",
+                  lty = 2)
+```
+
+
+
+
+```{r}
+pstart <- c(1, 20, 5, 2, 0.1)
+res <- optim(pstart, nll, gr = nll_grad, method = "L-BFGS-B",
+             control = list(parscale = c(2, 2, 1, 1, 0.1)),
+             lower = 0, upper = c(Inf, Inf, Inf, Inf, 1))
+res
+```
 
 
 ## Conjugate Gradient
