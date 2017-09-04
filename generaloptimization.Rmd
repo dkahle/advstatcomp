@@ -517,7 +517,7 @@ res
 
 We can see now that the warning messages are gone, but the solution is identical to that produced by the original `"BFGS"` method. 
 
-The maximum likelihood estimate of $\mu$ is `r res$par[1]` and the estimate of $\sigma$ is `r res$par[2]`. If we wanted to obtain asymptotic standard errors for these parameters, we could look at the Hessian matrix.
+The maximum likelihood estimate of $\mu$ is `r round(res$par[1],2)` and the estimate of $\sigma$ is `r round(res$par[2],2)`. If we wanted to obtain asymptotic standard errors for these parameters, we could look at the Hessian matrix.
 
 ```{r}
 solve(res$hessian) %>%
@@ -546,7 +546,9 @@ ggplot(dat, aes(x = no2)) +
 ```
 
 
-Looking at the density smooth of the data, it's clear that there are two modes to the data, suggesting that a truncated Normal might not be sufficient to characterize the data. One alternative in this case would be a mixture of two Normals, which might capture the two modes. For a two-component mixture, the density for the data would be
+It's not a great fit. Looking at the density smooth of the data, it's clear that there are two modes to the data, suggesting that a truncated Normal might not be sufficient to characterize the data. 
+
+One alternative in this case would be a mixture of two Normals, which might capture the two modes. For a two-component mixture, the density for the data would be
 
 \[
 f(x)
@@ -555,14 +557,20 @@ f(x)
 (1-\lambda)\frac{1}{\sigma}\varphi\left(\frac{x-\mu_2}{\sigma_2}\right).
 \]
 
-Commonly, we see that this model is fit using more complex algorithms like the EM algorithm or Markov chain Monte Carlo methods. While those methods do provide greater stability in the estimation process (as we will see later), we can in fact us Newton-type methods to maximize the likelihood (with a little care). 
+Commonly, we see that this model is fit using more complex algorithms like the EM algorithm or Markov chain Monte Carlo methods. While those methods do provide greater stability in the estimation process (as we will see later), we can in fact use Newton-type methods to maximize the likelihood directly with a little care. 
 
+First we can write out the negative log-likelihood symbolically and allow R's `deriv()` function to compute the gradient function.
 
 
 ```{r}
 nll_one <- deriv(~ -log(lambda * dnorm((x-mu1)/s1)/s1 + (1-lambda)*dnorm((x-mu2)/s2)/s2), 
                  c("mu1", "mu2", "s1", "s2", "lambda"), 
                  function.arg = TRUE)
+```
+
+Then, as before, we can specify separate negative log-likelihood (`nll`) and gradient R functions (`nll_grad`).
+
+```{r}
 nll <- function(p) {
         p <- as.list(p)
         v <- do.call("nll_one", p)
@@ -575,6 +583,12 @@ nll_grad <- function(p) {
 ```
 
 
+Finally, we can pass those functions into `optim()` with an initial vector of parameters. Here, we are careful to specify
+
+* We are using the `"L-BFGS-B"` method so that we specify a lower bound of 0 for all parameters and an upper bound of 1 for the $\lambda$ parameter
+
+* We set the `parscale` option in the list of control parameters, which is similar to the `typsize` argument to `nlm()`. The goal here is to give `optim()` a scaling for each parameter around the optimal point. 
+
 ```{r,error=TRUE}
 x <- dat$no2
 pstart <- c(5, 10, 2, 3, 0.5)
@@ -583,7 +597,13 @@ res <- optim(pstart, nll, gr = nll_grad, method = "L-BFGS-B",
              lower = 0, upper = c(Inf, Inf, Inf, Inf, 1))
 ```
 
+The algorithm appears to run without any warnings or messages. We can take a look at the output.
 
+```{r}
+res
+```
+
+The `convergence` code of 0 is a good sign and the parameter estimates in the `par` vector all seem reasonable. We can overlay the fitted model on to the density smooth to see how the model does.
 
 
 ```{r}
@@ -598,8 +618,9 @@ ggplot(dat, aes(x = no2)) +
                   lty = 2)
 ```
 
+The fit is still not wonderful, but at least this model captures roughly the locations of the two modes in the density. Also, it would seem that the model captures the tail of the density reasonably well, although this would need to be checked more carefully by looking at the quantiles.
 
-
+Finally, as with most models and optimization schemes, it's usually a good idea to vary the starting points to see if our current estimate is a local mode. 
 
 ```{r}
 pstart <- c(1, 20, 5, 2, 0.1)
@@ -608,6 +629,10 @@ res <- optim(pstart, nll, gr = nll_grad, method = "L-BFGS-B",
              lower = 0, upper = c(Inf, Inf, Inf, Inf, 1))
 res
 ```
+
+
+Here we see that with a slightly different starting point we get the same values and same minimum negative log-likelihood.
+
 
 
 ## Conjugate Gradient
