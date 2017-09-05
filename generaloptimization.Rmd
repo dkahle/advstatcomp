@@ -641,13 +641,179 @@ Here we see that with a slightly different starting point we get the same values
 
 ## Coordinate Descent
 
-The idea of coordinate descent methods is simple. If $f$ is a $k$-dimensional function, we can minimize $f$ by successively minimizing each of the individual dimensions of $f$ in a cyclic fashion, while holding the values of $f$ in the other dimensions fixed. This approach is sometimes referred to as cyclic coordinate descent. The primary advantage of this approach is that it takes an arbitrarily complex $k$-dimensional problem and reduces it to a collection of $k$ one-dimensional problems. The disadvantage is that convergence can often be painfully slow, particularly in problems where $f$ is not well-behaved. In statistics, a popular version of this algorithm is known as *backfitting* and is used to fit generalized additive models.
+The idea behind coordinate descent methods is simple. If $f$ is a $k$-dimensional function, we can minimize $f$ by successively minimizing each of the individual dimensions of $f$ in a cyclic fashion, while holding the values of $f$ in the other dimensions fixed. This approach is sometimes referred to as cyclic coordinate descent. The primary advantage of this approach is that it takes an arbitrarily complex $k$-dimensional problem and reduces it to a collection of $k$ one-dimensional problems. The disadvantage is that convergence can often be painfully slow, particularly in problems where $f$ is not well-behaved. In statistics, a popular version of this algorithm is known as *backfitting* and is used to fit generalized additive models.
 
+If we take a simple quadratic function we can take a detailed look at how coordinate descent works. Let's use the function
+\[
+f(x, y) = (x - 0.2)^2 + y^2 + xy.
+\]
+
+We can make a contour plot of this function near the minimum.
+
+```{r}
+f <- function(x, y) {
+        (x-0.2)^2 + y^2 + x * y
+}
+n <- 30
+xpts <- seq(-1.5, 1.5, len = n)
+ypts <- seq(-1.5, 1.5, len = n)
+gr <- expand.grid(x = xpts, y = ypts)
+feval <- with(gr, matrix(f(x, y), nrow = n, ncol = n))
+par(mar = c(5, 4, 1, 1))
+contour(xpts, ypts, feval, nlevels = 20, xlab = "x", ylab = "y")
+points(-1, -1, pch = 19, cex = 2)
+abline(h = -1)
+```
+
+Let's take as our initial point $(-1, -1)$ and begin our minimization along the $x$ dimension. We can draw a transect at the $y = -1$ level (thus holding $y$ constant) and attempt to find the minimum along that transect. Because $f$ is a quadratic function, the one-dimensional function induced by holding $y = -1$ is also a quadratic.
+
+
+```{r}
+feval <- f(xpts, y = -1)
+plot(xpts, feval, type = "l", xlab = "x", ylab = "f(x | y = -1)")
+```
+
+We can minimize this one-dimensional function with the `optimize()` function (or we could do it by hand if we're not lazy). 
+
+```{r}
+fx <- function(x) {
+        f(x, y = -1)
+}
+op <- optimize(fx, c(-1.5, 1.5))
+op
+```
+
+Granted, we could have done this analytically because we are looking at a simple quadratic function. But in general, you will need a one-dimensional optimizer (like the `optimize()` function in R) to complete each of the coorinate descent iterations.
+
+This completes one iteration of the coordinate descent algorithm and our new starting point is $(`r op$minimum`, -1)$. Let's store this new $x$ value and move on to the next iteration, which will minimize along the $y$ direction.
+
+```{r}
+x1 <- op$minimum
+```
+
+```{r}
+feval <- with(gr, matrix(f(x, y), nrow = n, ncol = n))
+par(mar = c(5, 4, 1, 1))
+contour(xpts, ypts, feval, nlevels = 20, xlab = "x", ylab = "y")
+points(-1, -1, pch = 1, cex = 2)     ## Initial point
+abline(h = -1, lty = 2)
+points(x1, -1, pch = 19, cex = 2)    ## After one step
+abline(v = x1)
+```
+
+The transect drawn by holding $x = `r x1`$ is shown in the Figure above. The one-dimensional function corresponding to that transect is shown below (again, a one-dimensional quadratic function). 
+
+```{r}
+feval <- f(x = x1, ypts)
+plot(xpts, feval, type = "l", xlab = "x", 
+     ylab = sprintf("f(x = %.1f | y)", x1))
+```
+
+Minimizing this one-dimensional function, we get the following.
+
+```{r}
+fy <- function(y) {
+        f(x = x1, y)
+}
+op <- optimize(fy, c(-1.5, 1.5))
+op
+```
+
+This completes another iteration of the coordinate descent algorithm and we can plot our progress below.
+
+```{r}
+y1 <- op$minimum
+feval <- with(gr, matrix(f(x, y), nrow = n, ncol = n))
+par(mar = c(5, 4, 1, 1))
+contour(xpts, ypts, feval, nlevels = 20, xlab = "x", ylab = "y")
+points(-1, -1, pch = 1, cex = 2)   ## Initial point
+abline(h = -1, lty = 2)
+points(x1, -1, pch = 1, cex = 2)   ## After one step
+abline(v = x1, lty = 2)
+points(x1, y1, pch = 19, cex = 2)  ## After two steps
+abline(h = y1)                     ## New transect
+```
+
+We can see that after two iterations we are quite a bit closer to the minimum. But we still have a ways to go, given that we can only move along the coordinate axis directions. For a truly quadratic function, this is not an efficient way to find the minimum, particularly when Newton's method will find the minimum in a single step! Of course, Newton's method can achieve that kind of performance because it uses two derivatives worth of information. The coordinate descent approach uses no derivative information. There's no free lunch!
+
+In the above example, the coordinates $x$ and $y$ were moderately correlated but not dramatically so. In general, coordinate descent algorithms show very poor performance when the coordinates are strongly correlated. 
+
+The specifics of the coordinate descent algorithm will vary greatly depending on the general function being minimized, but the essential algorithm is as follows. Given a function $f:\mathbb{R}^p\rightarrow\mathbb{R}$, 
+
+1. For $j = 1,\dots, p$, minimize $f_j(x) = f(\dots,x_{j-1},x,x_{j+1},\dots)$ wbere $x_1,\dots,x_{j-1},x_{j+1},\dots,x_p$ are all held fixed at their current values. For this use any simple one-dimensional optimizer.
+
+2. Check for convergence. If not converged, go back to 1.
 
 
 ### Generalized Additive Models
 
-Brian Caffo has a nice [video introduction to generalized additive models](https://youtu.be/f9Rj6SHPHUU)
+Before we begin this section, I wnat to point out that Brian Caffo has a nice [video introduction to generalized additive models](https://youtu.be/f9Rj6SHPHUU) on his YouTube channel. 
+
+Generalized additive models represent an interesting class of models that provide nonparametric flexibility to estimate a high-dimensional function without succumbing to the notorious "curse of dimensionality". In the traditional linear model, we model the outcome $y$ as
+\[
+y = \alpha + \beta_1x_1 + \beta_2x_2 \cdots + \beta_px_p + \varepsilon.
+\]
+Generalized additive models replace this formulation with a slightly more general one,
+\[
+y = \alpha + s_1(x_1\mid \lambda_1) + s_2(x_2\mid \lambda_2) + \cdots + s_p(x_p\mid \lambda_p) + \varepsilon
+\]
+where $s_1,\dots,s_p$ are *smooth functions* whose smoothness is controled by the parameters $\lambda_1,\dots,\lambda_p$. The key compromise of this model is that rather than estimate an arbitrary smooth $p$-dimensional function, we estimate a series of $p$ one-dimensional functions. This is a much simpler problem but still allows us to capture a variety of nonlinear relationships.
+
+The question now is how do we estimate these smooth functions? Hastie and Tibshirani proposed a *backfitting algorithm* whereby each $s_j()$ would be estimated one-at-a-time while holding all of the other functions constant. This is essentially a coordinate descent algorithm where the coordinates are one-dimensional functions in a function space. 
+
+The $s_j()$ functions can be estimated using any kind of smoother. Hastie and Tibshirani used running median smoothers for robustness in many of their examples, but one could use splines, kernel smoothers, or many others. 
+
+The backfitting algorithm for additive models works as follows. Given a model of the form
+\[
+y_i = \alpha + \sum_{j=1}^p s_j(x_{ij}\mid \lambda_j) + \varepsilon_i
+\]
+where $i=1,\dots,n$, 
+1. Initialize $\alpha = \frac{1}{n}\sum_{i=1}^n y_i$, $s_1 = s_2 = \cdots = s_p = 0$. 
+
+2. Given current values $s_1^{(n)},\dots,s_p^{(n)}$, for $j = 1,\dots,p$, Let
+\[
+r_{ij} = y_i - \alpha - \sum_{\ell\ne j}s_\ell(x_{i\ell}\mid \lambda_\ell)
+\]
+so that $r_{ij}$ is the partial residual for predictor $j$ and observation $i$. Given this set of partial residuals $r_{1j},\dots,r_{nj}$, we can estimate $s_j$ by smoothing the relationship between $r_{ij}$ and $x_{ij}$ using any smoother we choose. Essentially, we need to solve the mini-problem
+\[
+r_{ij} = s_j(x_{ij}\mid\lambda_j) + \varepsilon_i
+\]
+using standard nonparametric smoothers. As part of this process, we may need to estimate $\lambda_j$ using a procedure like generalized cross-validation or something similar. At the end of this step we have $s_1^{(n+1)},\dots,s_p^{(n+1)}$
+
+3. We can evaluate
+\[
+\Delta = \sum_{j=1}^p\left\|s_j^{(n+1)} - s_j^{(n)}\right\|
+\]
+or
+\[
+\Delta = \frac{\sum_{j=1}^p\left\|s_j^{(n+1)} - s_j^{(n)}\right\|}{\sum_{j=1}^p \left\|s_j^{(n)}\right\|}.
+\]
+If $\Delta$ is less than some pre-specificed tolerance, we can stop the algorithm. Otherwise, we can go back to Step 2.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
