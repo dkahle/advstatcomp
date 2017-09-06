@@ -1,5 +1,3 @@
-library(mnormt)
-
 f <- function(x, y, a = 1) {
         x^2 + y^2 + a * x * y
 }
