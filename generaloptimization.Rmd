@@ -645,14 +645,14 @@ The idea behind coordinate descent methods is simple. If $f$ is a $k$-dimensiona
 
 If we take a simple quadratic function we can take a detailed look at how coordinate descent works. Let's use the function
 \[
-f(x, y) = (x - 0.2)^2 + y^2 + xy.
+f(x, y) = x^2 + y^2 + xy.
 \]
 
 We can make a contour plot of this function near the minimum.
 
 ```{r}
 f <- function(x, y) {
-        (x-0.2)^2 + y^2 + x * y
+        x^2 + y^2 + x * y
 }
 n <- 30
 xpts <- seq(-1.5, 1.5, len = n)
@@ -683,7 +683,7 @@ op <- optimize(fx, c(-1.5, 1.5))
 op
 ```
 
-Granted, we could have done this analytically because we are looking at a simple quadratic function. But in general, you will need a one-dimensional optimizer (like the `optimize()` function in R) to complete each of the coorinate descent iterations.
+Granted, we could have done this analytically because we are looking at a simple quadratic function. But in general, you will need a one-dimensional optimizer (like the `optimize()` function in R) to complete each of the coordinate descent iterations.
 
 This completes one iteration of the coordinate descent algorithm and our new starting point is $(`r op$minimum`, -1)$. Let's store this new $x$ value and move on to the next iteration, which will minimize along the $y$ direction.
 
@@ -744,10 +744,67 @@ The specifics of the coordinate descent algorithm will vary greatly depending on
 
 2. Check for convergence. If not converged, go back to 1.
 
+### Convergence Rates
+
+To take a look at the convergence rate for coordinate descent, we will use as an example, a slightly more general version of the quadratic function above,
+\[
+f(x, y) = x^2 + y^2 + axy,
+\]
+where here, $a$, represents the amount of correlation or coupling between the $x$ and $y$ coordinates. If $a=0$ there is no coupling and $x$ and $y$ vary independently. 
+
+At each iteration of the coordinate descent algorithm, we minimize a one-dimensional version of this function. If we fix $y = c$, then we want to minimize
+\[
+f_{y=c}(x) = x^2 + c^2 + acx.
+\]
+Taking the derivative of this with respect to $x$ and setting it equal to zero gives us the minimum at 
+\[
+x_{min} = \frac{-ac}{2}
+\]
+Similarly, if we fix $x = c$, then we can minimize an analogous function $f_{x=c}(y)$ to get a minimum point of $y_{min} = \frac{-ac}{2}$.
+
+Looking at the coordinate descent algorithm, we can develop the recurrence relationship
+\[
+\left(
+\begin{array}{c}
+x_{n+1}\\
+y_{n+1}
+\end{array}
+\right)
+=
+\left(
+\begin{array}{c}
+-\frac{a}{2}y_n\\
+-\frac{a}{2}x_{n+1}
+\end{array}
+\right)
+\]
+Rewinding this back to the inital point, we can then write that
+\[
+|x_{n} - x_0| = |x_n-0| = \left(\frac{a}{2}\right)^{2n-1} y_0.
+\]
+where $x_0$ is the minimum point along the $x$ direction. We can similarly say that 
+\[
+|y_n-y_0| = \left(\frac{a}{2}\right)^{2n} x_0.
+\]
+Looking at the rates of convergence separately for each dimension, we can then show that in the $x$ direction,
+\[
+\frac{|x_{n+1}-x_0|}{|x_n-x_0|}
+=
+\frac{
+\left(\frac{a}{2}\right)^{2(n+1)-1}y_0
+}{
+\left(\frac{a}{2}\right)^{2n-1}y_0
+}
+=
+\left(\frac{a}{2}\right)^2.
+\]
+In order to achieve linear convergence for this algorithm, we must have $\left(\frac{a}{2}\right)^2\in (0, 1)$, which can be true for some values of $a$. But for values of $a\geq 2$ we would not even be able to obtain linear convergence. 
+
+In summary, coordinate descent algorithms are conceptually (and computationally) easy to implement but depending on the nature of the target function, convergence may not be possible, even under seemingly reasonable scenarios like the simple one above. Given that we typically do not have very good information about the nature of the target function, particularly in high-dimensional problems, coordinate descent algorithms should be used with care.
 
 ### Generalized Additive Models
 
-Before we begin this section, I wnat to point out that Brian Caffo has a nice [video introduction to generalized additive models](https://youtu.be/f9Rj6SHPHUU) on his YouTube channel. 
+Before we begin this section, I want to point out that Brian Caffo has a nice [video introduction to generalized additive models](https://youtu.be/f9Rj6SHPHUU) on his YouTube channel. 
 
 Generalized additive models represent an interesting class of models that provide nonparametric flexibility to estimate a high-dimensional function without succumbing to the notorious "curse of dimensionality". In the traditional linear model, we model the outcome $y$ as
 \[
@@ -788,7 +845,7 @@ or
 \[
 \Delta = \frac{\sum_{j=1}^p\left\|s_j^{(n+1)} - s_j^{(n)}\right\|}{\sum_{j=1}^p \left\|s_j^{(n)}\right\|}.
 \]
-If $\Delta$ is less than some pre-specificed tolerance, we can stop the algorithm. Otherwise, we can go back to Step 2.
+where $\|\cdot\|$ is some reasonable metric. If $\Delta$ is less than some pre-specificed tolerance, we can stop the algorithm. Otherwise, we can go back to Step 2 and do another round of backfitting.
 
 
 
