@@ -404,19 +404,23 @@ So the Newton iteration is then
 2\mu_n-\frac{\mu_n^2}{n}
 \end{eqnarray*}
 
-Using the functional programmign aspects of R, we can write a function that executes the functional iteration of Newton's method for however many times we which to run the algorithm.
+Using the functional programming aspects of R, we can write a function that executes the functional iteration of Newton's method for however many times we which to run the algorithm. 
+
+The following `Iterate()` code takes a function as argument and generates an 
+"iterator" version of it where the number of iterations is an argument. 
 
 ```{r}
 Funcall <- function(f, ...) f(...)
-
-## This creates takes a function as argument and generates an 
-## "iterator" version of it where the number of iterations is 
-## an argument
 Iterate <- function(f, n = 1) {
         function(x) {
                 Reduce(Funcall, rep.int(list(f), n), x, right = TRUE)
         }
 }
+```
+
+Now we can pass a single iteration of the Newton step as an argument to the `Iterate()` function defined above.
+
+```{r}
 single_iteration <- function(x) {
         2 * x - x^2 / xbar
 }
@@ -424,8 +428,11 @@ g <- function(x0, n) {
         giter <- Iterate(single_iteration, n)
         giter(x0)
 }
+```
 
-## Allow for vector "n" argument (mainly for plotting)
+Finally, to facilitate plotting of this function, it is helpful if our iterator function is vectorized with respect to `n`. The `Vectorize()` function can help us here.
+
+```{r}
 g <- Vectorize(g, "n")
 ```
 
@@ -437,8 +444,7 @@ par(mar = c(5, 5, 4, 1))
 curve(score, .35, 10, xlab = expression(mu), ylab = expression(score(mu)), cex.axis = 0.8)
 abline(h = 0, lty = 3)
 
-## Generate values for 7 functional iterations with a starting value of 10
-iterates <- g(10, 1:7)  
+iterates <- g(10, 1:7)  ## Generate values for 7 functional iterations with a starting value of 10.
 abline(v = c(10, iterates), lty = 2)
 axis(3, c(10, iterates), labels = c(0, 1:7), cex = 2, cex.axis = 0.8)
 mtext("Iteration #", at = 2, line = 2.5)
