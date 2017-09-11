@@ -118,8 +118,11 @@ Rather than compute the inverse of $X^\prime X$, we directly compute $\hat{\beta
 set.seed(2017-07-13)
 X <- matrix(rnorm(5000 * 100), 5000, 100)
 y <- rnorm(5000)
+```
 
-## Naive computation
+Here we benchmark the naive computation. 
+
+```{r}
 library(microbenchmark)
 microbenchmark(solve(t(X) %*% X) %*% t(X) %*% y)
 ```
