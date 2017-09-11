@@ -1,15 +1,11 @@
-f <- function(x, y, a = 1) {
-        x^2 + y^2 + a * x * y
-}
-
 f <- deriv(~ x^2 + y^2 + a * x * y, c("x", "y"), function.arg = TRUE)
 a <- 1
 
 n <- 40
-xpts <- seq(-3, 3, len = n)
-ypts <- seq(-3, 3, len = n)
+xpts <- seq(-3, 2, len = n)
+ypts <- seq(-2, 3, len = n)
 gr <- expand.grid(x = xpts, y = ypts)
-feval <- with(gr, vf(x, y, 1))
+feval <- with(gr, f(x, y))
 z <- matrix(feval, nrow = n, ncol = n)
 
 par(mar = c(5, 4, 1, 1))
@@ -27,11 +23,11 @@ f.sub <- function(alpha) {
 op <- optimize(f.sub, c(0, 4))
 alpha <- op$minimum
 
-arrows(x0, y0, 0, 0, lwd = 3)
+arrows(x0, y0, 0, 0, lwd = 3, col = "grey")
 
 x1 <- x0 + alpha * p0[1]
 y1 <- y0 + alpha * p0[2]
-arrows(x0, y0, x1, y1, col = "grey", lwd = 2)
+arrows(x0, y0, x1, y1, lwd = 2)
 
 
 f1 <- f(x1, y1)
@@ -47,7 +43,7 @@ op <- optimize(f.sub, c(0, 4))
 alpha <- op$minimum
 x2 <- x1 + alpha * p1[1]
 y2 <- y1 + alpha * p1[2]
-arrows(x1, y1, x2, y2, col = "gray", lwd = 2)
+arrows(x1, y1, x2, y2, lwd = 2)
 
 ## Steepest descent only
 p1 <- -f1g
