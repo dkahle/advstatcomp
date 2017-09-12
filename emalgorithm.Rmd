@@ -1,1 +1,216 @@
 # The EM Algorithm
+
+The EM algorithm is one of the most popular algorithm in all of statistics. A quick look at Google Scholar shows that the [paper by Art Dempster, Nan Laird, and Don Rubin](https://scholar.google.com.au/scholar?cluster=7728340850644612874&hl=en&as_sdt=0,5) has been cited more than 50,000 times. The EM standsof "Expectation-Maximization", which indicates the two-step nature of the algorithm. At a high level, there are two steps: The "E-Step" and the "M-step" (duh!).
+
+The EM algorithm is not so much an algorithm as a methodology for creating a family of algorithms. We will get into how exactly it works a bit later, but suffice it to say that when someone says "We used the EM algorithm," that probably isn't enough information to understand exactly what they did. The devil is in the details and most problems will need a bit of hand crafting. That said, there are a number of canonical problems now where an EM-type algorithm is the standard approach.
+
+The basic idea underlying the EM algorithm is as follows. We *observe* some data that we represent with $Y$. However, there are some *missing* data, that we represent with $Z$, that make life difficult for us. Together, the observed data $Y$ and the missing data $Z$ make up the *complete* data $X = (Y, Z)$. 
+
+1. We imagine the complete data have a density $g(y, z\mid\theta)$ that is parametrized by the vector of parameters $\theta$. Because of the missing data, we cannot evaluate $g$. 
+
+2. The observed data have the density
+\[
+f(y\mid\theta) = \int g(y, z\mid\theta)\,dz
+\]
+and the *observed data log-likelihood* is $\ell(\theta\mid y) = \log f(y\mid\theta)$.
+
+3. The problem now is that $\ell(\theta\mid y)$ is difficult to evaluate or maximize because of the integral (for discrete problems this will be a sum). However, in order to estimate $\theta$ via maximum likelihood *using only the observed data*, we need to be able to maximize $\ell(\theta\mid y)$. 
+
+4. The complete data density usually has some nice form (like being an exponential family member) so that if we had the missing data $Z$, we could easily evaluate $g(y,z\mid\theta)$.
+
+Given this setup, the basic outline of the EM algorithm works as follows:
+
+1. E-step: Let $\theta_0$ be the current estimate of $\theta$. Define
+\[
+Q(\theta\mid\theta_0)
+=
+\mathbb{E}\left[\log g(y,z\mid\theta)\mid y, \theta_0\right]
+\]
+
+2. M-step: Maximize $Q(\theta\mid\theta_0)$ with respect to $\theta$ to get the next value of $\theta$. 
+
+3. Goto 1 unless converged.
+
+In the E-step, the expectation is taken with respect to the *missing data density*, which is
+\[
+h(z\mid y,\theta)
+=
+\frac{g(y,z\mid\theta)}{f(y\mid\theta)}.
+\]
+Because we do not know $\theta$, we can plug in $\theta_0$ to evaluate the missing data density. In particular, one can see that it's helpful if the $\log g(y, z \mid\theta)$ is linear in the missing data so that taking the expectation is a simple operation. 
+
+## Example: A Two-Part Mixture Model
+
+Suppose we have data $y_1,\dots,y_n$ that are sampled independently from a two-part mixture of Normals model with density
+\[
+f(y\mid\theta)
+=
+\lambda\varphi(y\mid\mu_1,\sigma_1^2) + (1-\lambda)\varphi(y\mid\mu_2,\sigma_2^2).
+\]
+where $\varphi(y\mid\mu,\sigma^2)$ is the Normal density with mean $\mu$ and variance $\sigma^2$. The unknown parameter vector is $\theta = (\mu_1,\mu_2,\sigma_1^2,\sigma_2^2, \lambda)$ and the log-likelihood is
+\[
+\log f(y_1,\dots,y_n\mid\theta)
+=
+\log \sum_{i=1}^n \lambda\varphi(y_i\mid\mu_1,\sigma_1) + (1-\lambda)\varphi(y_i\mid\mu_2,\sigma_2).
+\]
+This problem is reasonably simple enough that it could be solved using a direct optimization method like Newton's method, but the EM algorithm provides a nice stable approach to finding the optimum. 
+
+The art of applying the EM algorithm is coming up with a useful complete data model. In this example, the approach is to hypothesize that each observation comes from one of two populations parameterized by $(\mu_1, \sigma_1^2)$ and $(\mu_2,\sigma^2_2)$, respectively. The "missing data" in this case are the labels identifying which observation came from which population. Therefore, we assert that there are missing data $z_1,\dots,z_n$ such that
+\[
+z_i\sim\text{Bernoulli}(\lambda).
+\]
+When $z_i=1$, $y_i$ comes from population 1 and when $z_i=0$, $y_i$ comes from population 2. 
+
+The idea is then that the data are sampled in two stages. First we sample $z_i$ to see which population the data come from and then given $z_i$, we can sample $y_i$ from the appropriate Normal distribution. The joint density of the observed and missing data, i.e. the complete data density, is then
+\[
+g(y,z\mid\theta)
+=
+\varphi(y\mid\mu_1,\sigma_1^2)^{z}\varphi(y\mid\mu_2,\sigma^2_2)^{1-z}\lambda^z(1-\lambda)^{1-z}.
+\]
+It's easy to show that
+\[
+\sum_{z=0}^1 g(y, z\mid\theta) = f(y\mid\theta)
+\]
+so that when we "integrate" out the missing data, we get the observed data density. 
+
+The complete data log-likelihood is then
+\[
+\log g(y, z\mid\theta) = 
+\sum_{i=1}^n
+z_i\log\varphi(y_i\mid\mu_1,\sigma^2_1) +
+(1-z_i)\log\varphi(y_i\mid\mu_2,\sigma^2_2) + 
+z_i\log\lambda + 
+(1-z_i)\log(1-\lambda).
+\]
+Note that this function is nice and linear in the missing data $z_i$. To evaluate the $Q(\theta\mid\theta_0$ function we need to take the expectation of the above expression with respect to the missing data density $h(z\mid y, \theta)$. But what is that? The missing data density will be proportional to the complete data density, so that
+\begin{eqnarray*}
+h(z\mid y,\theta) 
+& \propto &
+\varphi(y\mid\mu_1,\sigma_1^2)^z\varphi(y\mid\mu_2,\sigma_2^2)^{1-z}\lambda^z(1-\lambda)^{1-z}\\
+\end{eqnarray*}
+
+
+## A Minorizing Function
+
+One of the positive qualities of the EM algorithm is that it is very stable. Unlike Newton's algorithm, where each iteration may or may not be closer to the optimal value, each iteratation of the EM algorithm is designed to increase the log-likelihood. This is the *ascent property of the EM algorithM*, which we will show later. This stability, though, comes at a price---the EM algorithm's convergence rate is linear (while Newton's algorithm is quadratic). This can make running the EM algorithm painful at times, particularly when one has to compute standard errors via a resampling approach like the bootstrap.
+
+The EM algorithm is a *minorization* approach. Instead of directly maximizing the log-likelihood, which is difficult to evaluate, the algorithm constructs a minorizing function and optimizes that function instead. What is a minorizing function? Following Chapter 7 of Jan de Leeuw's [*Block Relaxation Algorithms in Statistics*](http://gifi.stat.ucla.edu/bras/_book/majorization-methods.html#introduction-1) a function $g$ *minorizes* $f$ over $\mathcal{X}$ at $y$ if
+
+1. $g(x) \leq f(x)$ for all $x\in\mathcal{X}$
+2. $g(y) = f(y)$
+
+In the description of the EM algorithm above, $Q(\theta\mid\theta_0)$ is the minorizing function. The benefits of this approach are
+
+1. The $Q(\theta\mid\theta_0)$ is a much nicer function that is easy to optimize
+
+2. Because the $Q(\theta\mid\theta_0)$ minorizes $\ell(\theta\mid y)$, maximizing it is guaranteed to increase $\ell(\theta\mid y)$. This is because if $\theta_n$ is our current estimate of $\theta$ and $Q(\theta\mid\theta_n)$ minorizes $\ell(\theta\mid y)$ at $\theta_n$, then we have
+\[
+\ell(\theta_{n+1}\mid y) 
+\geq 
+Q(\theta_{n+1}\mid\theta_n)
+\geq
+Q(\theta_n\mid\theta_n)
+=
+\ell(\theta_n\mid y).
+\]
+
+Let's take a look at how this minorization process works. We can begin with the observe log-likelihood
+\[
+\log f(y\mid\theta) = \log\int g(y,z\mid\theta)\,dz.
+\]
+Using the time-honored strategy of adding and subtracting, we can show that if $\theta_0$ is our current estimate of $\theta$,
+\begin{eqnarray*}
+\log f(y\mid\theta)-\log f(y\mid\theta_0)
+& = &
+\log\int g(y,z\mid\theta)\,dz - \log\int g(y,z\mid\theta_0)\,dz\\
+& = &
+\log\frac{\int g(y,z\mid\theta)\,dz}{\int g(y,z\mid\theta_0)\,dz}\\
+& = & 
+\log\frac{\int g(y,z\mid\theta_0)\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\,dz}{\int g(y,z\mid\theta_0)\,dz}
+\end{eqnarray*}
+Now, because we have defined
+\[
+h(z\mid y,\theta)
+=
+\frac{g(y,z\mid\theta)}{f(y\mid\theta)}
+=
+\frac{g(y,z\mid\theta)}{\int g(y,z\mid\theta)\,dz}
+\]
+we can write
+\begin{eqnarray*}
+\log f(y\mid\theta)-\log f(y\mid\theta_0)
+& = &
+\log\int h(z\mid y, \theta_0)\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\,dz\\
+& = &
+\log \mathbb{E}\left[\left.\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\right| y, \theta_0\right]
+\end{eqnarray*}
+Because the $\log$ function is concave, Jensen's inequality tells us that
+\[
+\log \mathbb{E}\left[\left.\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\right| y, \theta_0\right]
+\geq
+\mathbb{E}\left[\log\left.\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\right| y, \theta_0\right].
+\]
+Taking this, we can then write
+\[
+\log f(y\mid\theta)-\log f(y\mid\theta_0)
+\geq
+\mathbb{E}\left[\log\left.\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\right| y, \theta_0\right],
+\]
+which then gives us
+\[
+\log f(y\mid\theta)
+\geq
+\log f(y\mid\theta_0) +
+\mathbb{E}[\log g(y,z\mid\theta)\mid y, \theta_0] -
+\mathbb{E}[\log g(y,z\mid\theta_0)\mid y, \theta_0].
+\]
+The right-hand side of the above equation, the middle part of which is a function of $\theta$, is our minorizing function. We can see that for $\theta=\theta_0$ we have that the minorizing function is equal to $\log f(y\mid\theta_0)$. 
+
+
+### Example: Minorization in a Two-Part Mixture Model
+
+Suppose we have data $y_1,\dots,y_n$ that are sampled independently from a two-part mixture of Normals model with density
+\[
+f(y\mid\lambda)
+=
+\lambda\varphi(y\mid\mu_1,\sigma_1) + (1-\lambda)\varphi(y\mid\mu_2,\sigma_2).
+\]
+For the purposes of this example, let's assume that $\mu_1,\mu_2,\sigma_1$, and $\sigma_2$ are known. The only unknown parameter is $\lambda$, the mixing proportion. The observed data log-likelihood is
+\[
+\log f(y_1,\dots,y_n\mid\lambda)
+=
+\log \sum_{i=1}^n \lambda\varphi(y_i\mid\mu_1,\sigma_1) + (1-\lambda)\varphi(y_i\mid\mu_2,\sigma_2).
+\]
+Because of the sum, there's not much more simplification that can be done. 
+
+## Missing Information Principle
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

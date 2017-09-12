@@ -12,7 +12,7 @@ site: bookdown::bookdown_site
 
 # Welcome {-}
 
-The book covers material taught in the Johns Hopkins Biostatistics Advanced Statistical Computing course.
+The book covers material taught in the Johns Hopkins Biostatistics Advanced Statistical Computing course.  This book is a WORK IN PROGRESS.
 
 ## Stay in Touch! {-}
 

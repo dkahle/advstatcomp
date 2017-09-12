@@ -56,6 +56,62 @@ arrows(x1, y1, x2, y2, col = "red", lwd = 2, lty = 2)
 
 
 
+#########################################################################
+## EM Algorithm
+
+mu1 <- 1
+s1 <- 2
+mu2 <- 4
+s2 <- 1
+
+lambda0 <- 0.4
+n <- 100
+set.seed(2017-09-12)
+z <- rbinom(n, 1, lambda0)
+x <- rnorm(n, mu1 * z + mu2 * (1-z), s1 * z + (1-z) * s2)
+hist(x)
+rug(x)
+
+f <- function(x, lambda) {
+        lambda * dnorm(x, mu1, s1) + (1-lambda) * dnorm(x, mu2, s2)
+}
+nll <- function(lambda) {
+        sum(log(f(x, lambda)))
+}
+nll <- Vectorize(nll, "lambda")
+
+curve(nll, 0.01, 0.95, n = 200)
+
+lam0 <- 0.2
+minor <- function(lambda) {
+        p1 <- sum(log(f(x, lam0)))
+        pi <- lam0 * dnorm(x, mu1, s1) / (lam0 * dnorm(x, mu1, s1) 
+                                          + (1 - lam0) * dnorm(x, mu2, s2))
+        p2 <- sum(pi * dnorm(x, mu1, s1, log = TRUE) 
+                  + (1-pi) * dnorm(x, mu2, s2, log = TRUE)
+                  + pi * log(lambda)
+                  + (1-pi) * log(1-lambda))
+        p3 <- sum(pi * dnorm(x, mu1, s1, log = TRUE) 
+                  + (1-pi) * dnorm(x, mu2, s2, log = TRUE)
+                  + pi * log(lam0)
+                  + (1-pi) * log(1-lam0))
+        p1 + p2 - p3
+}
+minor <- Vectorize(minor, "lambda")
+
+curve(minor, 0.01, 0.99, add = TRUE, col = "red")
+lam0 <- 0.1
+curve(minor, 0.01, 0.99, add = TRUE, col = "red")
+lam0 <- 0.9
+curve(minor, 0.01, 0.99, add = TRUE, col = "blue")
+lam0 <- 0.4
+curve(minor, 0.01, 0.99, add = TRUE, col = "blue")
+abline(v = op$minimum)
+
+
+
+
+
 
 
 

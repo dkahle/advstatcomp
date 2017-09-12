@@ -477,14 +477,18 @@ nll_one <- deriv(~ -log(dnorm((x - mu)/s) / s) + log(0.5),
 
 The `optim()` function works a bit differently from `nlm()` in that instead of having the gradient as an attribute of the negative log-likelhood, the gradient needs to be a separate function. 
 
+First the negative log-likelihood.
+
 ```{r}
-## Negative log-likelhood
 nll <- function(p) {
         v <- nll_one(p[1], p[2])
         sum(v)
 }
+```
 
-## Gradient function
+Then the gradient function.
+
+```{r}
 nll_grad <- function(p) {
         v <- nll_one(p[1], p[2])
         colSums(attr(v, "gradient"))
@@ -689,7 +693,7 @@ z <- matrix(feval, nrow = n, ncol = n)
 
 par(mar = c(5, 4, 1, 1))
 contour(xpts, ypts, z, nlevels = 20)
-x0 <- -2.5
+x0 <- -2.5                           ## Initial point
 y0 <- 1.2
 points(x0, y0, pch = 19, cex = 2)
 ```
@@ -701,8 +705,6 @@ From the figure, it is clear that ideally we would be able to travel in the dire
 ```{r}
 par(mar = c(5, 4, 1, 1))
 contour(xpts, ypts, z, nlevels = 20)
-x0 <- -2.5
-y0 <- 1.2
 points(x0, y0, pch = 19, cex = 2)
 arrows(x0, y0, 0, 0, lwd = 3, col = "grey")
 ```
@@ -710,26 +712,28 @@ arrows(x0, y0, 0, 0, lwd = 3, col = "grey")
 If only life were so easy? The idea behind conjugate gradient is the construct that direction using a series of conjugate directions. First we start with the steepest descent direction. Here, we extract the gradient and find the optimal $\alpha$ value (i.e. the step size).
 
 ```{r}
-## Get the gradient function
 f0 <- f(x0, y0)
-p0 <- drop(-attr(f0, "gradient"))
-
-## Compute the optimal alpha
+p0 <- drop(-attr(f0, "gradient"))  ## Get the gradient function
 f.sub <- function(alpha) {
         ff <- f(x0 + alpha * p0[1], y0 + alpha * p0[2])
         as.numeric(ff)
 }
-op <- optimize(f.sub, c(0, 4))
+op <- optimize(f.sub, c(0, 4))     ## Compute the optimal alpha
 alpha <- op$minimum
+```
 
-## Take a step in the steepest descent direction
+Now that we've computed the gradient and the optimal $\alpha$, we can take a step in the steepest descent direction
+
+```{r}
 x1 <- x0 + alpha * p0[1]
 y1 <- y0 + alpha * p0[2]
+```
 
+and plot our progress to date.
+
+```{r}
 par(mar = c(5, 4, 1, 1))
 contour(xpts, ypts, z, nlevels = 20)
-x0 <- -2.5
-y0 <- 1.2
 points(x0, y0, pch = 19, cex = 2)
 arrows(x0, y0, 0, 0, lwd = 3, col = "grey")
 arrows(x0, y0, x1, y1, lwd = 2)
@@ -738,25 +742,19 @@ arrows(x0, y0, x1, y1, lwd = 2)
 Now we need to compute the next direction in which to travel. We begin with the steepest descent direction again. The figure below shows what direction that would be (without any modifications for conjugacy).
 
 ```{r}
-## Get the gradient function
 f1 <- f(x1, y1)
-f1g <- drop(attr(f1, "gradient"))
-
-## Steepest descent direction
-p1 <- -f1g
-
-## Compute the optimal alpha
-op <- optimize(f.sub, c(0, 4))
+f1g <- drop(attr(f1, "gradient"))  ## Get the gradient function
+p1 <- -f1g                         ## Steepest descent direction
+op <- optimize(f.sub, c(0, 4))     ## Compute the optimal alpha
 alpha <- op$minimum
-
-## Find the next point
-x2 <- x1 + alpha * p1[1]
+x2 <- x1 + alpha * p1[1]           ## Find the next point
 y2 <- y1 + alpha * p1[2]
+```
 
+Now we can plot the next direction that is chosen by the usual steepest descent approach.
+```{r}
 par(mar = c(5, 4, 1, 1))
 contour(xpts, ypts, z, nlevels = 20)
-x0 <- -2.5
-y0 <- 1.2
 points(x0, y0, pch = 19, cex = 2)
 arrows(x0, y0, 0, 0, lwd = 3, col = "grey")
 arrows(x0, y0, x1, y1, lwd = 2)
@@ -766,30 +764,25 @@ arrows(x1, y1, x2, y2, col = "red", lwd = 2, lty = 2)
 However, the conjugate gradient approach computes a slightly different direction in which to travel. 
 
 ```{r}
-## Fletcher-Reeves
 f1 <- f(x1, y1)
 f1g <- drop(attr(f1, "gradient"))
-beta <- drop(crossprod(f1g) / crossprod(p0))
-
-## Conjugate gradient direction
-p1 <- -f1g + beta * p0
-
-## Compute the optimal alpha
+beta <- drop(crossprod(f1g) / crossprod(p0))  ## Fletcher-Reeves
+p1 <- -f1g + beta * p0                        ## Conjugate gradient direction
 f.sub <- function(alpha) {
         ff <- f(x1 + alpha * p1[1], y1 + alpha * p1[2])
         as.numeric(ff)
 }
-op <- optimize(f.sub, c(0, 4))
+op <- optimize(f.sub, c(0, 4))                ## Compute the optimal alpha
 alpha <- op$minimum
-
-## Find the next point
-x2c <- x1 + alpha * p1[1]
+x2c <- x1 + alpha * p1[1]                     ## Find the next point
 y2c <- y1 + alpha * p1[2]
+```
 
+Finally, we can plot the direction in which the conjugate gradient method takes.
+
+```{r}
 par(mar = c(5, 4, 1, 1))
 contour(xpts, ypts, z, nlevels = 20)
-x0 <- -2.5
-y0 <- 1.2
 points(x0, y0, pch = 19, cex = 2)
 arrows(x0, y0, 0, 0, lwd = 3, col = "grey")
 arrows(x0, y0, x1, y1, lwd = 2)
