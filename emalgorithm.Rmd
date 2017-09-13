@@ -1,6 +1,6 @@
 # The EM Algorithm
 
-The EM algorithm is one of the most popular algorithm in all of statistics. A quick look at Google Scholar shows that the [paper by Art Dempster, Nan Laird, and Don Rubin](https://scholar.google.com.au/scholar?cluster=7728340850644612874&hl=en&as_sdt=0,5) has been cited more than 50,000 times. The EM stands for "Expectation-Maximization", which indicates the two-step nature of the algorithm. At a high level, there are two steps: The "E-Step" and the "M-step" (duh!).
+The EM algorithm is one of the most popular algorithms in all of statistics. A quick look at Google Scholar shows that the [paper by Art Dempster, Nan Laird, and Don Rubin](https://scholar.google.com.au/scholar?cluster=7728340850644612874&hl=en&as_sdt=0,5) has been cited more than 50,000 times. The EM stands for "Expectation-Maximization", which indicates the two-step nature of the algorithm. At a high level, there are two steps: The "E-Step" and the "M-step" (duh!).
 
 The EM algorithm is not so much an algorithm as a methodology for creating a family of algorithms. We will get into how exactly it works a bit later, but suffice it to say that when someone says "We used the EM algorithm," that probably isn't enough information to understand exactly what they did. The devil is in the details and most problems will need a bit of hand crafting. That said, there are a number of canonical problems now where an EM-type algorithm is the standard approach.
 
@@ -418,13 +418,104 @@ In the figure above, the second minorizing function is constructed using $\lambd
 
 ## Missing Information Principle
 
+So far, we have described the EM algorithm for computing maximum likelihood estimates in some missing data problems. But the original presentation of the EM algorithm did not discuss how to obtain any measures of uncertainty, such as standard errors. One obvious candidate would be the *observed information matrix*. However, much like with the observed log-likelihood, the observed information matrix is difficult to compute because of the missing data. 
+
+Recalling the notation from the previous section, let $f(y\mid\theta)$ be the observed data density, $g(y,z\mid\theta)$ the complete data density, and $h(z\mid y,\theta) := g(y,z\mid\theta)/f(y\mid\theta)$ the missing data density. From this we can write the following series of identities:
+\begin{eqnarray*}
+f(y\mid\theta) & = & \frac{g(y,z\mid\theta)}{h(z\mid y,\theta)}\\
+-\log f(y\mid\theta) 
+& = &
+-\log g(y,z\mid\theta) - 
+[-\log h(z\mid y,\theta)]\\
+\mathbb{E}\left[-\frac{\partial}{\partial\theta\partial\theta^\prime}
+\log f(y\mid\theta) \right]
+& = &
+\mathbb{E}\left[-\frac{\partial}{\partial\theta\partial\theta^\prime}
+\log g(y,z\mid\theta)\right] - 
+\mathbb{E}\left[
+-\frac{\partial}{\partial\theta\partial\theta^\prime}
+\log h(z\mid y,\theta)
+\right]\\
+I_Y(\theta) & = & I_{Y,Z}(\theta) - I_{Z\mid Y}(\theta)
+\end{eqnarray*}
+Here, we refer to $I_Y(\theta)$ as the observed data information matrix, $I_{Y,Z}(\theta)$ as the complete data information matrix, and $I_{Z\mid Y}(\theta)$ as the missing information matrix. This identity allows for the the nice interpretation as the "observed information" equals the "complete information" minus the "missing information". 
+
+If we could easily evaluate the $I_Y(\theta)$, we could simply plug in the maximum likelihood estimate $\hat{\theta}$ and obtain standard errors from $I_Y(\hat{\theta})$. However, beause of the missing data, $I_Y(\theta)$ is difficult ot evaluate. Presumably, $I_{Y,Z}(\theta)$ is reasonable to compute because it is based on the complete data. What then is $I_{Z\mid Y}(\theta)$, the missing information matrix?
+
+Let $S(y\mid\theta) = \frac{\partial}{\partial\theta}\log f(y\mid\theta)$ be the observed score function and let $S(y,z\mid\theta) = \frac{\partial}{\partial\theta}\log g(y,z\mid\theta)$ be the complete data score function. In a critically important paper, [Tom Louis](https://scholar.google.com.au/citations?view_op=view_citation&hl=en&user=9SPUQWIAAAAJ&citation_for_view=9SPUQWIAAAAJ:u-x6o8ySG0sC) showed that 
+\[
+I_{Z\mid Y}(\theta)
+=
+\mathbb{E}\left[
+S(y, z\mid\theta)S(y, z\mid\theta)^\prime
+\right]
+-
+S(y\mid\theta)S(y\mid\theta)^\prime.
+\]
+with the expectation taken with respect to the missing data density $h(z\mid y,\theta)$. The first part of the right hand side involves computations on the complete data, which is fine. Unfortunately, the second part involves the observed score function, which is presumably difficult to evaluate. However, by definition, $S(y\mid\hat{\theta}) = 0$ at the maximum likelihood estimate $\hat{\theta}$. Therefore, we can write the observed information matrix at the MLE as
+\[
+I_Y(\hat{\theta})
+=
+I_{Y,Z}(\hat{\theta})
+-
+\mathbb{E}\left[
+S(y, z\mid\theta)S(y, z\mid\theta)^\prime
+\right]
+\]
+so that all computations are done on the complete data. Note also that
+\begin{eqnarray*}
+I_{Y,Z}(\hat{\theta})
+& = &
+-\mathbb{E}\left[\left.
+\frac{\partial}{\partial\theta\partial\theta^\prime}
+\log g(y,z\mid\theta)\right|\hat{\theta}, y
+\right]\\
+& = &
+-Q^{\prime\prime}(\hat{\theta}\mid\hat{\theta})
+\end{eqnarray*}
 
 
+[Meilijson showed](https://scholar.google.co.il/citations?view_op=view_citation&hl=en&user=Ui6SpvwAAAAJ&citation_for_view=Ui6SpvwAAAAJ:u5HHmVD_uO8C) that when the observed data $\mathbf{y}=y_1,\dots,y_n$ are iid, then
+\[
+S(\mathbf{y}\mid\theta)=\sum_{i=1}^n S(y_i\mid\theta)
+\]
+and hence
+\begin{eqnarray*}
+I_Y(\theta)
+& = &
+\text{Var}(S(\mathbf{y}\mid\theta))\\
+& = &
+\frac{1}{n}\sum_{i=1}^n
+S(y_i\mid\theta)S(y_i\mid\theta)^\prime
+-
+\frac{1}{n^2}S(\mathbf{y}\mid\theta)S(\mathbf{y}\mid\theta)^\prime.
+\end{eqnarray*}
+Again, because $S(\mathbf{y}\mid\hat{\theta})=0$ at the MLE, we can ignore the second part of the expression if we are interested in obtaining the observed information at the location of the MLE. As for the first part of the expression, Louis also showed that
+\[
+S(y_i\mid\theta)
+=
+\mathbb{E}[S(y_i, z_i\mid\theta)\mid y_i, \theta_0].
+\]
+where the expectation is once again taken with respect to the missing data density. Therefore, we can transfer computations on the observed score function to computations on the complete score function.
 
+## Acceleration Methods
 
+### Aitken Acceleration
 
+The Aitken acceleration method works as follows. Given $\theta_n$, the current estimate of $\theta$, 
 
+1. Compute $\theta_{n+1}$ using the standard EM algorithm
 
+2. Compute
+\[
+(I-\hat{J})^{-1} = I_{Y,Z}(\theta)I_Y(\theta)^{-1}.
+\]
+
+3. Let $\theta^\star = \theta_n+(I-\hat{J})^{-1}(\theta_{n+1}-\theta_n)$.
+
+4. Set $\theta_{n+1} = \theta^\star$.
+
+### SQUAREM
 
 
 
