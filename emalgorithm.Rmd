@@ -39,7 +39,40 @@ h(z\mid y,\theta)
 \]
 Because we do not know $\theta$, we can plug in $\theta_0$ to evaluate the missing data density. In particular, one can see that it's helpful if the $\log g(y, z \mid\theta)$ is linear in the missing data so that taking the expectation is a simple operation. 
 
-## Example: A Two-Part Mixture Model
+## EM Algorithm for Exponential Families
+
+Data that are generated from a *regular exponential family* distribution have a density that takes the form
+\[
+g(x\mid\theta)
+=
+h(x) \exp(\theta^\prime t(x))/a(\theta).
+\]
+where $\theta$ is the canonical parameter and $t(x)$ is the vector of sufficient statistics. When thinking about the EM algorithm, the idea scenario is that the *complete data density* can be written as an exponential family. In that case, for the E-step, if $y$ represents the observed component of the complete data, we can write
+\begin{eqnarray*}
+Q(\theta\mid\theta_0)
+& = & 
+\mathbb{E}[\log g(x\mid\theta)\mid y, \theta_0]\\
+& = &
+\log h(x)-\theta^\prime \mathbb{E}[t(x)\mid y, \theta_0] - \log a(\theta)
+\end{eqnarray*}
+(Note: We can ignore the $h(x)$ term because it does not involve the $\theta$ parameter.) In order to maximize this function with respect to $\theta$, we can take the derivative and set it equal to zero,
+\[
+Q^\prime(\theta\mid\theta_0) 
+=
+\mathbb{E}[t(x)\mid y,\theta_0] - \mathbb{E}_\theta[t(x)] = 0.
+\]
+Hence, for exponential family distributions, executing the M-step is equivalent to setting
+\[
+\mathbb{E}[t(x)\mid y,\theta_0] = \mathbb{E}_\theta[t(x)]
+\]
+where $\mathbb{E}_\theta[t(x)]$ is the unconditional expectation of the complete data and $\mathbb{E}[t(x)\mid y,\theta_0]$ is the conditional expectation of the missing data, given the observed data. 
+
+
+## Canonical Examples
+
+In this section, we give some canonical examples of how the EM algorithm can be used to estimate model parameters. These examples are simple enough that they can be solved using more direct methods, but they are nevertheless useful for demonstrating how to set up the two-step EM algorithm in various scenarios.
+
+### Two-Part Normal Mixture Model
 
 Suppose we have data $y_1,\dots,y_n$ that are sampled independently from a two-part mixture of Normals model with density
 \[
@@ -94,7 +127,7 @@ h(z\mid y,\theta)
 \frac{\lambda \varphi(y\mid\mu_1,\sigma_1^2)}{\lambda \varphi(y\mid\mu_1,\sigma_1^2) + (1-\lambda)\varphi(y\mid\mu_2,\sigma_2^2)}
 \right)
 \end{eqnarray*}
-From this, what we need to compute the $Q()$ function is $\pi_i = \mathbb{E}[z_i\mid y_y, \theta_0]$. Given that, wen then compute the $Q()$ function in the E-step.
+From this, what we need to compute the $Q()$ function is $\pi_i = \mathbb{E}[z_i\mid y_i, \theta_0]$. Given that, wen then compute the $Q()$ function in the E-step.
 \begin{eqnarray*}
 Q(\theta\mid\theta_0)
 & = &
@@ -130,7 +163,51 @@ In order to compute $\pi_i$, we will need to use the current estimates of $\mu_1
 Once we have these updated estimates, we can go back to the E-step and recompute our $Q$ function. 
 
 
+### Censored Exponential Data
 
+Suppose we have survival times $x_1,\dots,x_n\sim\text{Exponential}(\lambda)$. However, we do not observe these survival times because some of them are censored at times $c_1,\dots,c_n$. Because the censoring times are known, what we actually observe are the data $(\min(y_1, c_1), \delta_1),\dots,(\min(y_n,c_n),\delta_n)$, where $\delta=1$ if $y_i\leq c_i$ and $\delta=0$ if $y_i$ is censored at time $c_i$.
+
+The complete data density is simply the exponential distribution with rate parameter $\lambda$, 
+\[
+g(x_1,\dots,x_n\mid\lambda)
+=
+\prod_{i=1}^n\frac{1}{\lambda}\exp(-x_i/\lambda).
+\]
+To do the E-step, we need to compute
+\[
+Q(\lambda\mid\lambda_0)
+=
+\mathbb{E}[\log g(x_1,\dots,x_n\mid\lambda)\mid \mathbf{y}, \lambda_0]\\
+\]
+We can divide the data into the observations that we fully observe ($\delta_i=1$) and those that are censored ($\delta_i=0$). For the censored data, their complete survival time is "missing", so can denote the complete survival time as $z_i$. Given that, the $Q(\lambda\mid\lambda_0)$ function is
+\[
+Q(\lambda\mid\lambda_0)
+=
+\mathbb{E}\left\{\left.-n\log\lambda-\frac{1}{\lambda}\left[
+\sum_{i=1}^n
+\delta_i y_i + (1-\delta_i) z_i.
+\right]
+\right|\mathbf{y},\lambda_0
+\right\}
+\]
+But what is $\mathbb{E}[z_i\mid y_i,\lambda_0]$? Because we assume the underlying data are exponentially distributed, we can use the "memoryless" property of the exponential distribution. That is, given that we have survived until the censoring time $c_i$, our expected survival time beyond that is simply $\lambda$. Because we don't know $\lambda$ yet we can plug in our current best estimate. Now, for the E-step we have
+\[
+Q(\lambda\mid\lambda_0)
+=
+-n\log\lambda-\frac{1}{\lambda}
+\left[
+\sum_{i=1}^n\delta_i y_i+(1-\delta_i)(c_i + \lambda_0)
+\right]
+\]
+With the $Q$ function removed of missing data, we can execute the M-step and maximize the above function to get
+\[
+\hat{\lambda}
+=
+\frac{1}{n}\left[
+\sum_{i=1}^n\delta_iy_i +(1-\delta_i)(c_i+\lambda_0)
+\right]
+\]
+We can then update $\lambda_0=\hat{\lambda}$ and go back and repeat the E-step.
 
 
 
