@@ -82,7 +82,7 @@ loglike <- Vectorize(loglike, "lambda")
 
 curve(loglike, 0.01, 0.95, n = 200)
 
-lam0 <- 0.2
+lam0 <- 0.8
 minor <- function(lambda) {
         p1 <- sum(log(f(x, lam0)))
         pi <- lam0 * dnorm(x, mu1, s1) / (lam0 * dnorm(x, mu1, s1) 
@@ -109,8 +109,34 @@ curve(minor, 0.01, 0.99, add = TRUE, col = "blue")
 abline(v = op$minimum)
 
 
+f0 <- deriv3(~ log(lambda * dnorm(x, mu1, s1) + (1-lambda) * dnorm(x, mu2, s2)),
+           "lambda", function.arg = TRUE)
+ff <- Vectorize(function(lambda) {
+        sum(f0(lambda))
+}, "lambda")
+fgrad <- Vectorize(function(lambda) {
+        sum(attr(f0(lambda), "gradient"))
+}, "lambda")
+fhess <- Vectorize(function(lambda) {
+        sum(attr(f0(lambda), "hessian"))
+}, "lambda")
 
+fquad <- function(lambda) {
+        ff(lam0) + (lambda - lam0) * fgrad(lambda) + 0.5 * (lambda - lam0)^2 * fhess(lambda)
+}
 
+f <- function(x, lambda) {
+        lambda * dnorm(x, mu1, s1) + (1-lambda) * dnorm(x, mu2, s2)
+}
+loglike <- function(lambda) {
+        sum(log(f(x, lambda)))
+}
+loglike <- Vectorize(loglike, "lambda")
+
+lam0 <- 0.4
+curve(loglike, 0.01, 0.95, n = 200)
+curve(fquad, 0.01, 0.95, add = TRUE, col = "red")
+curve(minor, 0.01, 0.95, add = TRUE, col = "blue")
 
 
 
