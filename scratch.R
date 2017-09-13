@@ -75,12 +75,12 @@ rug(x)
 f <- function(x, lambda) {
         lambda * dnorm(x, mu1, s1) + (1-lambda) * dnorm(x, mu2, s2)
 }
-nll <- function(lambda) {
+loglike <- function(lambda) {
         sum(log(f(x, lambda)))
 }
-nll <- Vectorize(nll, "lambda")
+loglike <- Vectorize(loglike, "lambda")
 
-curve(nll, 0.01, 0.95, n = 200)
+curve(loglike, 0.01, 0.95, n = 200)
 
 lam0 <- 0.2
 minor <- function(lambda) {

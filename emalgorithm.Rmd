@@ -1,6 +1,6 @@
 # The EM Algorithm
 
-The EM algorithm is one of the most popular algorithm in all of statistics. A quick look at Google Scholar shows that the [paper by Art Dempster, Nan Laird, and Don Rubin](https://scholar.google.com.au/scholar?cluster=7728340850644612874&hl=en&as_sdt=0,5) has been cited more than 50,000 times. The EM standsof "Expectation-Maximization", which indicates the two-step nature of the algorithm. At a high level, there are two steps: The "E-Step" and the "M-step" (duh!).
+The EM algorithm is one of the most popular algorithm in all of statistics. A quick look at Google Scholar shows that the [paper by Art Dempster, Nan Laird, and Don Rubin](https://scholar.google.com.au/scholar?cluster=7728340850644612874&hl=en&as_sdt=0,5) has been cited more than 50,000 times. The EM stands for "Expectation-Maximization", which indicates the two-step nature of the algorithm. At a high level, there are two steps: The "E-Step" and the "M-step" (duh!).
 
 The EM algorithm is not so much an algorithm as a methodology for creating a family of algorithms. We will get into how exactly it works a bit later, but suffice it to say that when someone says "We used the EM algorithm," that probably isn't enough information to understand exactly what they did. The devil is in the details and most problems will need a bit of hand crafting. That said, there are a number of canonical problems now where an EM-type algorithm is the standard approach.
 
@@ -87,12 +87,59 @@ Note that this function is nice and linear in the missing data $z_i$. To evaluat
 h(z\mid y,\theta) 
 & \propto &
 \varphi(y\mid\mu_1,\sigma_1^2)^z\varphi(y\mid\mu_2,\sigma_2^2)^{1-z}\lambda^z(1-\lambda)^{1-z}\\
+& = &
+(\lambda \varphi(y\mid\mu_1,\sigma_1^2))^z((1-\lambda)\varphi(y\mid\mu_2,\sigma_2^2))^{1-z}\\
+& = &
+\text{Bernoulli}\left(
+\frac{\lambda \varphi(y\mid\mu_1,\sigma_1^2)}{\lambda \varphi(y\mid\mu_1,\sigma_1^2) + (1-\lambda)\varphi(y\mid\mu_2,\sigma_2^2)}
+\right)
 \end{eqnarray*}
+From this, what we need to compute the $Q()$ function is $\pi_i = \mathbb{E}[z_i\mid y_y, \theta_0]$. Given that, wen then compute the $Q()$ function in the E-step.
+\begin{eqnarray*}
+Q(\theta\mid\theta_0)
+& = &
+\mathbb{E}\left[
+\sum_{i=1}^n
+z_i\log\varphi(y\mid\mu_1,\sigma_1^2)
++ (1-z_i)\log\varphi(y\mid\mu_2,\sigma_2^2)
++ z_i\log\lambda + (1-z_i)\log(1-\lambda)
+\right]\\
+& = &
+\sum_{i=1}^n
+\pi_i\log\varphi(y\mid\mu_1,\sigma_1^2)
++ (1-\pi_i)\varphi(y\mid\mu_2,\sigma_2^2)
++ \pi_i\log\lambda
++ (1-\pi_i)\log(1-\lambda)\\
+& = &
+\sum_{i=1}^n
+\pi_i\left[
+-\frac{1}{2}\log 2\pi\sigma_1^2-\frac{1}{2\sigma_1^2}(y_i-\mu_1)^2
+\right]
++ (1-\pi_i)\left[
+-\frac{1}{2}\log 2\pi\sigma_2^2-\frac{1}{2\sigma_2^2}(y_i-\mu_2)^2
+\right]
+\end{eqnarray*}
+In order to compute $\pi_i$, we will need to use the current estimates of $\mu_1, \sigma_1^2, \mu_2$, and $\sigma_2^2$ (in addition to the data $y_1,\dots, y_n$). We can then compute the gradient of $Q$ in order maximize it for the current iteration. After doing that we get the next values, which are
+\begin{eqnarray*}
+\hat{\mu}_1 & = & \frac{\sum \pi_i y_i}{\sum \pi_i}\\
+\hat{\mu}_2 & = & \frac{\sum (1-\pi_i) y_i}{\sum 1-\pi_i}\\
+\hat{\sigma}_1^2 & = & \frac{\sum\pi_i(y_i-\mu_1)^2}{\sum\pi_i}\\
+\hat{\sigma}_2^2 & = & \frac{\sum(1-\pi_i)(y_i-\mu_2)^2}{\sum(1-\pi_i)}\\
+\hat{\lambda} & = & \frac{1}{n}\sum\pi_i
+\end{eqnarray*}
+Once we have these updated estimates, we can go back to the E-step and recompute our $Q$ function. 
+
+
+
+
+
+
+
 
 
 ## A Minorizing Function
 
-One of the positive qualities of the EM algorithm is that it is very stable. Unlike Newton's algorithm, where each iteration may or may not be closer to the optimal value, each iteratation of the EM algorithm is designed to increase the log-likelihood. This is the *ascent property of the EM algorithM*, which we will show later. This stability, though, comes at a price---the EM algorithm's convergence rate is linear (while Newton's algorithm is quadratic). This can make running the EM algorithm painful at times, particularly when one has to compute standard errors via a resampling approach like the bootstrap.
+One of the positive qualities of the EM algorithm is that it is very stable. Unlike Newton's algorithm, where each iteration may or may not be closer to the optimal value, each iteratation of the EM algorithm is designed to increase the observed log-likelihood. This is the *ascent property of the EM algorithm*, which we will show later. This stability, though, comes at a price---the EM algorithm's convergence rate is linear (while Newton's algorithm is quadratic). This can make running the EM algorithm painful at times, particularly when one has to compute standard errors via a resampling approach like the bootstrap.
 
 The EM algorithm is a *minorization* approach. Instead of directly maximizing the log-likelihood, which is difficult to evaluate, the algorithm constructs a minorizing function and optimizes that function instead. What is a minorizing function? Following Chapter 7 of Jan de Leeuw's [*Block Relaxation Algorithms in Statistics*](http://gifi.stat.ucla.edu/bras/_book/majorization-methods.html#introduction-1) a function $g$ *minorizes* $f$ over $\mathcal{X}$ at $y$ if
 
@@ -103,7 +150,7 @@ In the description of the EM algorithm above, $Q(\theta\mid\theta_0)$ is the min
 
 1. The $Q(\theta\mid\theta_0)$ is a much nicer function that is easy to optimize
 
-2. Because the $Q(\theta\mid\theta_0)$ minorizes $\ell(\theta\mid y)$, maximizing it is guaranteed to increase $\ell(\theta\mid y)$. This is because if $\theta_n$ is our current estimate of $\theta$ and $Q(\theta\mid\theta_n)$ minorizes $\ell(\theta\mid y)$ at $\theta_n$, then we have
+2. Because the $Q(\theta\mid\theta_0)$ minorizes $\ell(\theta\mid y)$, maximizing it is guaranteed to increase (or at least not decrease) $\ell(\theta\mid y)$. This is because if $\theta_n$ is our current estimate of $\theta$ and $Q(\theta\mid\theta_n)$ minorizes $\ell(\theta\mid y)$ at $\theta_n$, then we have
 \[
 \ell(\theta_{n+1}\mid y) 
 \geq 
@@ -144,7 +191,7 @@ we can write
 & = &
 \log \mathbb{E}\left[\left.\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\right| y, \theta_0\right]
 \end{eqnarray*}
-Because the $\log$ function is concave, Jensen's inequality tells us that
+Because the $\log$ function is concave, [Jensen's inequality](https://en.wikipedia.org/wiki/Jensen%27s_inequality) tells us that
 \[
 \log \mathbb{E}\left[\left.\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\right| y, \theta_0\right]
 \geq
@@ -157,31 +204,140 @@ Taking this, we can then write
 \mathbb{E}\left[\log\left.\frac{g(y,z\mid\theta)}{g(y,z\mid\theta_0)}\right| y, \theta_0\right],
 \]
 which then gives us
-\[
+\begin{eqnarray*}
 \log f(y\mid\theta)
-\geq
+& \geq &
 \log f(y\mid\theta_0) +
 \mathbb{E}[\log g(y,z\mid\theta)\mid y, \theta_0] -
-\mathbb{E}[\log g(y,z\mid\theta_0)\mid y, \theta_0].
-\]
+\mathbb{E}[\log g(y,z\mid\theta_0)\mid y, \theta_0]\\
+& = &
+\log f(y\mid\theta_0) +
+Q(\theta\mid\theta_0) - Q(\theta_0\mid\theta_0)
+\end{eqnarray*}
 The right-hand side of the above equation, the middle part of which is a function of $\theta$, is our minorizing function. We can see that for $\theta=\theta_0$ we have that the minorizing function is equal to $\log f(y\mid\theta_0)$. 
 
 
 ### Example: Minorization in a Two-Part Mixture Model
 
-Suppose we have data $y_1,\dots,y_n$ that are sampled independently from a two-part mixture of Normals model with density
+We will revisit the two-part Normal mixture model from before. Suppose we have data $y_1,\dots,y_n$ that are sampled independently from a two-part mixture of Normals model with density
 \[
 f(y\mid\lambda)
 =
-\lambda\varphi(y\mid\mu_1,\sigma_1) + (1-\lambda)\varphi(y\mid\mu_2,\sigma_2).
+\lambda\varphi(y\mid\mu_1,\sigma_1^2) + (1-\lambda)\varphi(y\mid\mu_2,\sigma_2^2).
 \]
-For the purposes of this example, let's assume that $\mu_1,\mu_2,\sigma_1$, and $\sigma_2$ are known. The only unknown parameter is $\lambda$, the mixing proportion. The observed data log-likelihood is
+We can simulate some data from this model.
+```{r}
+mu1 <- 1
+s1 <- 2
+mu2 <- 4
+s2 <- 1
+lambda0 <- 0.4
+n <- 100
+set.seed(2017-09-12)
+z <- rbinom(n, 1, lambda0)     ## "Missing" data
+x <- rnorm(n, mu1 * z + mu2 * (1-z), s1 * z + (1-z) * s2)
+hist(x)
+rug(x)
+```
+
+
+
+
+For the purposes of this example, let's assume that $\mu_1,\mu_2,\sigma_1^2$, and $\sigma_2^2$ are known. The only unknown parameter is $\lambda$, the mixing proportion. The observed data log-likelihood is
 \[
 \log f(y_1,\dots,y_n\mid\lambda)
 =
-\log \sum_{i=1}^n \lambda\varphi(y_i\mid\mu_1,\sigma_1) + (1-\lambda)\varphi(y_i\mid\mu_2,\sigma_2).
+\log \sum_{i=1}^n \lambda\varphi(y_i\mid\mu_1,\sigma^2_1) + (1-\lambda)\varphi(y_i\mid\mu_2,\sigma^2_2).
 \]
-Because of the sum, there's not much more simplification that can be done. 
+
+We can plot the observed data log-likelihood in this case with the simulated data above. First, we can write a function encoding the mixture density as a function of the data and $\lambda$.
+
+```{r}
+f <- function(x, lambda) {
+        lambda * dnorm(x, mu1, s1) + (1-lambda) * dnorm(x, mu2, s2)
+}
+```
+
+Then we can write the log-likelihood as a function of $\lambda$ and plot it.
+
+```{r}
+loglike <- function(lambda) {
+        sum(log(f(x, lambda)))
+}
+loglike <- Vectorize(loglike, "lambda")  ## Vectorize for plotting
+par(mar = c(5,4, 1, 1))
+curve(loglike, 0.01, 0.95, n = 200, ylab = "Log-likelihood", 
+      xlab = expression(lambda))
+```
+
+Note that the true value is $\lambda = 0.4$. We can compute the maximum likelihood estimate in this simple case with
+
+```{r}
+op <- optimize(loglike, c(0.1, 0.9), maximum = TRUE)
+op$maximum
+```
+
+In this case it would appear that the maximum likelihood estimate exhibits some bias, but we won't worry about that right now.
+
+We can illustrate how the minorizing function works by starting with an initial value of $\lambda_0 = 0.8$.
+
+```{r}
+lam0 <- 0.8
+minor <- function(lambda) {
+        p1 <- sum(log(f(x, lam0)))
+        pi <- lam0 * dnorm(x, mu1, s1) / (lam0 * dnorm(x, mu1, s1) 
+                                          + (1 - lam0) * dnorm(x, mu2, s2))
+        p2 <- sum(pi * dnorm(x, mu1, s1, log = TRUE) 
+                  + (1-pi) * dnorm(x, mu2, s2, log = TRUE)
+                  + pi * log(lambda)
+                  + (1-pi) * log(1-lambda))
+        p3 <- sum(pi * dnorm(x, mu1, s1, log = TRUE) 
+                  + (1-pi) * dnorm(x, mu2, s2, log = TRUE)
+                  + pi * log(lam0)
+                  + (1-pi) * log(1-lam0))
+        p1 + p2 - p3
+}
+minor <- Vectorize(minor, "lambda")
+```
+
+Now we can plot the minorizing function along with the observed log-likelihood.
+
+```{r}
+par(mar = c(5,4, 1, 1))
+curve(loglike, 0.01, 0.95, ylab = "Log-likelihood", 
+      xlab = expression(lambda))
+curve(minor, 0.01, 0.95, add = TRUE, col = "red")
+legend("topright", c("obs. log-likelihood", "minorizing function"), 
+       col = 1:2, lty = 1, bty = "n")
+```
+
+Maximizing the minorizing function gives us the next estimate of $\lambda$ in the EM algorithm. It's clear from the picture that maximizing the minorizing function will increase the observed log-likelihood.
+
+```{r}
+par(mar = c(5,4, 2, 1))
+curve(loglike, 0.01, 0.95, ylab = "Log-likelihood", 
+      xlab = expression(lambda), xlim = c(-0.5, 1), 
+      ylim = c())
+abline(v = lam0, lty = 2)
+mtext(expression(lambda[0]), at = lam0, side = 3)
+curve(minor, 0.01, 0.95, add = TRUE, col = "red", lwd = 2)
+op <- optimize(minor, c(0.1, 0.9), maximum = TRUE)
+abline(v = op$maximum, lty = 2)
+lam0 <- op$maximum
+curve(minor, 0.01, 0.95, add = TRUE, col = "blue", lwd = 2)
+abline(v = lam0, lty = 2)
+mtext(expression(lambda[1]), at = lam0, side = 3)
+op <- optimize(minor, c(0.1, 0.9), maximum = TRUE)
+abline(v = op$maximum, lty = 2)
+mtext(expression(lambda[2]), at = op$maximum, side = 3)
+legend("topleft", 
+       c("obs. log-likelihood", "1st minorizing function", "2nd minorizing function"), 
+       col = c(1, 2, 4), lty = 1, bty = "n")
+```
+
+In the figure above, the second minorizing function is constructed using $\lambda_1$ and maximized to get $\lambda_2$. This process of constructing the minorizing function and maximizing can be repeated until convergence. This is the EM algorithm at work!
+
+
 
 ## Missing Information Principle
 
