@@ -13,13 +13,13 @@ The journey from statistical model to useful output has many steps, most of whic
 
 ## Example: Linear Models
 
-Consider the simple linear model. 
+Consider the simple linear model, 
 \begin{equation}
 y = \beta_0 + \beta_1 x + \varepsilon
 (\#eq:regression)
 \end{equation}
 
-This model has unknown parameters $\beta_0$ and $\beta_1$. Given observations $(y_1, x_1), (y_2, x_2),\dots, (y_n, x_n)$, we can combine these data with the *likelihood principle*, which gives us a procedure for producing model parameter estimates. The likelihood can be *maximized* to produce *maximum likelihood estimates*,
+This model has unknown parameters $\beta_0$ and $\beta_1$. Given observations $(y_1, x_1), (y_2, x_2),\dots, (y_n, x_n)$, assuming a stochastic structure on $\varepsilon$ we can combine these data with the *likelihood principle*, which gives us a procedure for producing model parameter estimates. The likelihood can be *maximized* to produce *maximum likelihood estimates*,
 \[
 \hat{\beta}_0 = \bar{y} - \hat{\beta}_1\bar{x}
 \]
@@ -35,12 +35,12 @@ These *statistics*, $\hat{\beta}_0$ and $\hat{\beta}_1$, can then be interpreted
 | :-------- | :------------- |
 | Model | Linear regression |
 | Principle/Technique | Likelihood principle | 
-| Algorithm | Maximization |
+| Algorithm | Maximization (analytical) |
 | Statistic | $\hat{\beta}_0$, $\hat{\beta}_1$ |
 
 In this example, the maximization of the likelihood was simple because the solution was available in closed form. However, in most other cases, there will not be a closed form solution and some specific algorithm will be needed to maximize the likelihood.
 
-Changing the implementation of a given component can lead to different outcomes further down the change and can even produce completely different outputs. Identical estimates for the parameters in this model can be produced (in this case) by replacing the likelihood principle with the principle of least squares. However, changing the principle to produce, for example, maximum *a posteriori* estimates would have produced different statistics at the end.
+Changing the implementation of a given component can lead to different outcomes further down the road and can even produce completely different outputs. Identical estimates for the parameters in this model can be produced (in this case) by replacing the likelihood principle with the principle of least squares. However, changing the principle to produce, for example, maximum *a posteriori* estimates would have produced different statistics at the end.
 
 
 
@@ -70,13 +70,13 @@ One confusing aspect of statistical computing is that often there is a disconnec
 
 Some key issues to look for when implementing statistical or numerical solutions on the computer are
 
-1. Overflow - When numbers get too big, they cannot be represented on a computer and so often `NA`s are produced instead;
+1. Overflow - When numbers get too big, they cannot be represented on a computer and so often `NA`s or `Inf`s are produced instead;
 
-2. Underflow - Similar to overflow, numbers can get too small for computers to represent, resulting in errors or warnings or inaccurate computation;
+2. Underflow - Similar to overflow, numbers can get too small for computers to represent, resulting in either `0`s from rounding down or errors/warnings for inaccurate computation;
 
-3. Near linear dependence - the existence of linear dependence in matrix computations depends on the precision of a machine. Because computers are finite precision, there are commonly situations where one might think there is no linear dependence but the computer cannot tell the difference.
+3. Near linear dependence - depending on the precision the machine uses to represent numbers, the existence of linear dependence in matrix computations can cause problems. Because most computations are done with finite precision, there are commonly situations where one might think there is no linear dependence but the computer cannot tell the difference.
 
-All three of the above problems arise from the finite precision nature of all computers. One must take care to use algorithms that do calculations in the computable range and that automatically handle things like near dependence.
+All three of the above problems arise from the finite precision nature of computer arithmetic. While some computer algebra systems represent numbers and perform arithmetic in a way that is exact, for myriad reasons most software used by data scientists use finite precision numbers and arithmetic. That means there's a finite number of numbers that the computer can represent, and so when computations result in numbers that aren't in the set of representable numbers, errors are introduced. One must take care to use algorithms that do calculations in the computable range and that automatically handle things like over/underflow and near dependence.
 
 Below, I highlight two common examples in statistics where the implementation diverges from what textbooks explain as the solution: The least squares solution to the linear regression estimation problem and the computation of the multivariate Normal density. Both problems, on paper, involve inverting a matrix, which is typically a warning sign in any linear algebra problem. While matrix inverses are commonly found in statistics textbooks, it's rare in practice that you will ever want to directly compute them. This point bears repeating: **If you find yourself computing the inverse of a matrix, there is usually a better way of doing whatever you are trying to do**.
 
@@ -88,7 +88,7 @@ The typical linear regression model, written in matrix form, is represented as f
 \[
 y = X\beta + \varepsilon
 \]
-where $y$ is an $n\times 1$ observed response, $X$ is the $n\times p$ predictor matrix, $\beta$ is the $p\times 1$ coefficient vector, and $\varepsilon$ is $n\times 1$ error vector.
+where $y$ is an $n\times 1$ observed response vector, $X$ is the $n\times p$ predictor matrix, $\beta$ is the $p\times 1$ coefficient vector, and $\varepsilon$ is $n\times 1$ error vector.
 
 In most textbooks the solution for estimating $\beta$, whether it be via maximum likelihood or least squares, is written as
 
@@ -100,7 +100,7 @@ And indeed, that *is* the solution. In R, this could be translated literally as
 ```r
 betahat <- solve(t(X) %*% X) %*% t(X) %*% y
 ```
-where `solve()` is used to invert the cross product matrix $X^\prime X$. However, one would never compute the actual value of $\hat{\beta}$ this way on the computer. The formula presented above is *only* computed in textbooks.
+where `solve()` is used to invert the cross product matrix $X^\prime X$. However, one should never compute the actual value of $\hat{\beta}$ this way on the computer. The formula presented above is *only* computed in textbooks.
 
 The primary reason is that computing the direct inverse of $X^\prime X$ is very expensive computationally and is a potentially unstable operation on a computer when there is high colinearity amongst the predictors. Furthermore, in computing $\hat{\beta}$ we do not actually need the inverse of $X^\prime X$, so why compute it? A simpler approach would be to take the normal equations,
 \[
@@ -112,7 +112,7 @@ and solve them directly. In R, we could write
 solve(crossprod(X), crossprod(X, y))
 ```
 
-Rather than compute the inverse of $X^\prime X$, we directly compute $\hat{\beta}$ via [Gaussian elimination](https://en.wikipedia.org/wiki/LU_decomposition). This approach has the benefit of being more numerically stable and being *much* faster.
+Rather than compute the inverse of $X^\prime X$, we directly compute $\hat{\beta}$ via [Gaussian elimination](https://en.wikipedia.org/wiki/LU_decomposition). This approach has the benefit of being more numerically stable and being *much* faster. For example, here's a fake dataset of $n = 5000$ observations with $p = 100$ predictors.
 
 ```{r, cache=TRUE}
 set.seed(2017-07-13)
@@ -120,31 +120,26 @@ X <- matrix(rnorm(5000 * 100), 5000, 100)
 y <- rnorm(5000)
 ```
 
-Here we benchmark the naive computation. 
+We can benchmark the naive computation using __microbenchmark__. The first row uses `solve()` to compute the full inverse for the naive solution; the second uses it to compute $\hat{\beta}$ via Gaussian elimination.
 
-```{r}
-library(microbenchmark)
-microbenchmark(solve(t(X) %*% X) %*% t(X) %*% y)
-```
-
-
-The following timing uses the `solve()` function to compute $\hat{\beta}$ via Gaussian elimination.
 ```{r,cache=TRUE}
+library(microbenchmark)
 microbenchmark(solve(t(X) %*% X) %*% t(X) %*% y,
-               solve(crossprod(X), crossprod(X, y)))
+               solve(crossprod(X), crossprod(X, y))
+)
 ```
 
-You can see that the betweeen the two approach there is a more than 5-fold difference in computation time, with the second approach being considerably faster.
+You can see that the between the two approachs there is a 3- to 5-fold difference in computation time, with the second approach being considerably faster.
 
 
 However, this approach breaks down when there is any colinearity in the $X$ matrix. For example, we can tack on a column to $X$ that is very similar (but not identical) to the first column of $X$.
 
 ```{r,error=TRUE}
-W <- cbind(X, X[, 1] + rnorm(5000, sd = 0.0000000001))
+W <- cbind(X, X[, 1] + rnorm(5000, sd = 0.000000001))
 solve(crossprod(W), crossprod(W, y))
 ```
 
-Now the approach doesn't work because the cross product matrix $W^\prime W$ is singular. In practice, matrices like these can come up a lot in data analysis and it would be useful to have a way to deal with it automatically.
+Now the approach doesn't work because the cross product matrix $W^\prime W$ is computationally singular, it's singular as far as our limited precision is concerned. In practice, matrices like these can come up a lot in data analysis and it would be useful to have a way to deal with it automatically.
 
 R takes a different approach to solving for the unknown coefficients in a linear model. R uses the [QR decomposition](https://en.wikipedia.org/wiki/QR_decomposition), which is not as fast, but has the added benefit of being able to automatically detect and handle colinear columns in the matrix.
 
@@ -175,7 +170,7 @@ Note that the output of `qr()` computes the rank of $W$ to be 100, not 101, beca
 betahat <- qr.coef(Qw, y)
 ```
 
-We do not show it here, but the very last element of `betahat` is `NA` because a coefficient corresponding to the last column of $W$ (the collinear column) could not be calculated.
+We do not show it here, but the very last element of `betahat` is `NA` because a coefficient corresponding to the last column of $W$ (the colinear column) could not be calculated.
 
 While the QR decomposition does handle colinearity, we do pay a price in speed.
 ```{r,cache=TRUE}
@@ -196,10 +191,10 @@ In practice, we do not use functions like `qr()` or `qr.coef()` directly because
 
 Computing the multivariate normal density is a common problem in statistics, such as in fitting spatial statistical models or Gaussian process models. Because optimization procedures used to compute maximum likelihood estimates or likelihood ratios can be evaluated hundreds or thousands of times in a single run, it's useful to have a highly efficient procedure for evaluating the multivariate Normal density.
 
-The $p$-dimensional multivariate Normal density is written as
+The natural log of the $p$-dimensional multivariate Normal density is written as
 
 \[
-\varphi(x\mid\mu,\Sigma)
+\log \varphi(x\mid\mu,\Sigma)
 =
 -\frac{p}{2}\log 2\pi-\frac{1}{2}\log|\Sigma| - \frac{1}{2}(x-\mu)^\prime\Sigma^{-1}(x-\mu)
 \]
@@ -215,7 +210,7 @@ z^\prime\Sigma^{-1}z
 
 Here, much like the linear regression example above, the key bottleneck is the inversion of the $p$-dimensional covariance matrix $\Sigma$. If we take $z$ to be a $p\times 1$ column vector, then a literal translation of the mathematics into R code might look something like this,
 
-```r
+```{r,eval=FALSE}
 t(z) %*% solve(Sigma) %*% z
 ```
 
@@ -244,53 +239,79 @@ where $v = R^{\prime -1} z$ and is a $p\times 1$ vector. Furthermore, we can avo
 \[
 R^\prime v = z
 \]
-Once we have computed $v$, we can compute the quadratic form as $v^\prime v$, which is simply the cross product of two $p$-dimensional vectors!
+Once we have computed $v$, we can compute the quadratic form as $v^\prime v$, which is simply the inner product of two $p$-dimensional vectors!
 
 Another benefit of the Cholesky decomposition is that it gives us a simple way to compute the log-determinant of $\Sigma$. The log-determinant of $\Sigma$ is simply $2$ times the sum of the log of the diagonal elements of $R$.
 
-Here is an implementation of the naive approach to computing the quadratic form in the multivariate Normal.
+Here is an implementation of the naive approach to computing the quadratic form in the $p = 100$ multivariate Normal.
 
 ```{r}
-set.seed(2017-07-13)
-z <- matrix(rnorm(200 * 100), 200, 100)
-S <- cov(z)
-quad.naive <- function(z, S) {
-        Sinv <- solve(S)
-        rowSums((z %*% Sinv) * z)
-}
+quad.naive <- function(z, S) as.numeric(z %*% solve(S) %*% z)
+quad.chol  <- function(z, S) sum(backsolve(chol(S), z, transpose = TRUE)^2)
+
+preSigma <- matrix(rnorm(100^2), 100, 100)
+Sigma <- t(preSigma) %*% preSigma
+z <- rnorm(100)
+
+quad.naive(z, Sigma)
+quad.chol(z, Sigma)
 ```
 
-
-We can first take a look at the output that this function produces.
-```{r,message=FALSE}
-library(dplyr)
-quad.naive(z, S) %>% summary
-```
-
-
-The following is a version of the quadratic form function that uses the Cholesky decomposition.
-
-```{r}
-quad.chol <- function(z, S) {
-        R <- chol(S)
-        v <- backsolve(R, t(z), transpose = TRUE)
-        colSums(v * v)
-}
-```
-
-We can verify that this function produces the same output as the naive version.
-```{r}
-quad.chol(z, S) %>% summary
-```
-
-
-Now, we can time both procedures to see how they perform.
-```{r}
+```{r,cache=TRUE}
 library(microbenchmark)
-microbenchmark(quad.naive(z, S), quad.chol(z, S))
+microbenchmark(
+  quad.naive(rnorm(100), Sigma),
+  quad.chol(rnorm(100), Sigma)
+)
 ```
 
-We can see that the version using the Cholesky decomposition takes about 60% of the time of the naive version. In a single evaluation, this may not amount to much time. However, over the course of potentially many iterations, these kinds of small savings can add up.
+
+
+
+<!-- ```{r} -->
+<!-- set.seed(2017-07-13) -->
+<!-- z <- matrix(rnorm(200 * 100), 200, 100) -->
+<!-- z <- matrix(rnorm(5 * 3), 5, 3) -->
+<!-- S <- cov(z) -->
+<!-- quad.naive <- function(z, S) { -->
+<!--         Sinv <- solve(S) -->
+<!--         rowSums((z %*% Sinv) * z) -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- We can first take a look at the output that this function produces. -->
+<!-- ```{r,message=FALSE} -->
+<!-- library(dplyr) -->
+<!-- quad.naive(z, S) %>% summary -->
+<!-- ``` -->
+
+
+<!-- The following is a version of the quadratic form function that uses the Cholesky decomposition. -->
+
+<!-- ```{r} -->
+<!-- quad.chol <- function(z, S) { -->
+<!--         R <- chol(S) -->
+<!--         v <- backsolve(R, t(z), transpose = TRUE) -->
+<!--         colSums(v * v) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- We can verify that this function produces the same output as the naive version. -->
+<!-- ```{r} -->
+<!-- quad.chol(z, S) %>% summary -->
+<!-- ``` -->
+
+
+<!-- Now, we can time both procedures to see how they perform. -->
+<!-- ```{r,echo=FALSE,results='hide'} -->
+<!-- library(microbenchmark) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- microbenchmark(quad.naive(z, S), quad.chol(z, S)) -->
+<!-- ``` -->
+
+We can see that the version using the Cholesky decomposition is significantly faster than the naive version. In a single evaluation, this may not amount to much time. However, over the course of potentially many iterations, these kinds of small savings can add up.
 
 The key lesson here is that our use of the Cholesky decomposition takes advantage of the fact that we know that the covariance matrix in a multivariate Normal is symmetric and positive definite. The naive version of the algorithm that just blindly inverts the covariance matrix is not able to take advantage of this information.
 
